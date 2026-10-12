@@ -1,0 +1,52 @@
+name: GRIDIRON Phase 16 prospective identity match
+on:
+  workflow_dispatch:
+    inputs:
+      use_api_credits:
+        description: "Fetch one game's live player props AFTER downloading a fresh roster (uses API credits)"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "Bookmaker region"
+        type: choice
+        options:
+          - us
+          - us2
+          - ca
+        default: us
+permissions:
+  contents: read
+jobs:
+  identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test roster-first quote matching and ambiguity guards
+        run: python -m unittest -v test_phase16 test_phase15 test_live_market
+      - name: Verify module execution without API requests
+        run: python -m scripts.phase16 --help >/dev/null
+      - name: Retrieve new roster and one live odds snapshot (explicit opt in)
+        if: ${{ inputs.use_api_credits }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          REGION: ${{ inputs.region }}
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "::error::ODDS_API_KEY missing from Actions secrets."
+            exit 1
+          fi
+          python -m scripts.phase16 --live --region "$REGION" --output output/phase16_identity_audit.json
+      - name: Upload counts only, never player lists or odds
+        if: ${{ inputs.use_api_credits }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase16-identity-match-report
+          path: output/phase16_identity_audit.json
+          if-no-files-found: error
+          retention-days: 14
