@@ -1,0 +1,52 @@
+name: GRIDIRON Phase 17 historical pregame projection probe
+on:
+  workflow_dispatch:
+    inputs:
+      use_api_credits:
+        description: "Request one game's player lines after downloading historical inputs (uses API credits)"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "Bookmaker region"
+        type: choice
+        options:
+          - us
+          - us2
+          - ca
+        default: us
+permissions:
+  contents: read
+jobs:
+  projections:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verify strict historical-only forecasts and safeguards
+        run: python -m unittest -v test_phase17
+      - name: Verify CLI before any network or API credits
+        run: python -m scripts.phase17 --help >/dev/null
+      - name: Generate real-player point-forecast coverage (explicit opt-in)
+        if: ${{ inputs.use_api_credits }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          REGION: ${{ inputs.region }}
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "::error::ODDS_API_KEY missing."
+            exit 1
+          fi
+          python -m scripts.phase17 --live --region "$REGION" --summary output/phase17_summary.json
+      - name: Publish anonymous counts only
+        if: ${{ inputs.use_api_credits }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase17-projection-coverage
+          path: output/phase17_summary.json
+          retention-days: 14
+          if-no-files-found: error
