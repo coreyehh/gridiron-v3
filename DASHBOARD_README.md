@@ -1,52 +1,31 @@
-# GRIDIRON 3.0 — PRIVATE PLAYER PROP DASHBOARD
+# GRIDIRON — Simple Mac dashboard
 
-**Status:** Dashboard code implemented. Runs on your Mac; you need the TWO encrypted files created by your successful Phase 19 live run. The GitHub repository is public. **Never put your archive secret, decrypted data, or plaintext individual sportsbook lines in this public repository.**
+## The easy way
 
-## Launch the dashboard on your Mac
+**You do not need to install Python packages or enter Terminal commands each time.**
 
-**Step 1: Download the dashboard code.** Open https://github.com/coreyehh/gridiron-v3 and use **Code → Download ZIP**. Unzip and open the project folder.
+1. Open [GRIDIRON on GitHub](https://github.com/coreyehh/gridiron-v3). Choose **Code → Download ZIP**. Download the **updated** repository again (an older ZIP will not have the new launcher). Double-click the downloaded ZIP to unzip it.
+2. Open the `gridiron-v3-main` folder in Finder. Double-click **OPEN GRIDIRON.command**. The first time, it installs the dashboard and might take a few minutes. Your browser will open automatically at **http://127.0.0.1:8501**.
+3. From [your successful Phase 19 Bills–Rams run](https://github.com/coreyehh/gridiron-v3/actions/runs/38320842317), download **phase19-encrypted-private-ledger** from the **Artifacts** section. Keep it as a ZIP (do not unzip).
+4. Drag that ZIP into the dashboard's **Drop the phase19-encrypted-private-ledger ZIP here** field. Enter the **private encryption key** you saved in your password manager. Never send the key to GitHub issues or this chat.
+5. Your table appears: one row per player and prop, **GRIDIRON projection, median sportsbook line, projection-to-line difference, books covered**. Filter by player or market. Expand **View every sportsbook line and price** for the original book/side/odds quotes.
 
-**Step 2: Download your private player data.** Open the successful Phase 19 run: https://github.com/coreyehh/gridiron-v3/actions/runs/38320842317 . Scroll to **Artifacts** → download **phase19-encrypted-private-ledger**. Unzip it. It contains `phase19_forecasts.enc` and `phase19_private_comparison.enc`. Artifacts expire after 30 days.
+### If the Mac blocks the launcher
 
-**Step 3: Run the local dashboard.** Open **Terminal** on your Mac and type `cd ` (with a trailing space), then drag the unzipped `gridiron-v3-main` folder into the Terminal window and press Return.
+Right-click (or Control-click) **OPEN GRIDIRON.command** → **Open**, then approve opening if offered. Only do this for the launcher you downloaded from your own repository. You can also open **System Settings → Privacy & Security** to review an opening warning. If Finder says the file is not executable, tell me the exact error rather than pasting more commands.
 
-Then run these commands, one by one:
+### If Terminal says `dashboard.py` does not exist
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install streamlit pandas cryptography
-python -m streamlit run dashboard.py --server.address 127.0.0.1 --browser.gatherUsageStats false
-```
+That means you previously ran the old command from your home directory `~`. Use the **new** launcher inside the downloaded `gridiron-v3-main` folder instead. You can close the old Terminal window.
 
-Your browser will open a local dashboard, typically at http://127.0.0.1:8501 .
+### If you see `Address already in use`
 
-**Step 4: Unlock only inside your local dashboard.** In the left sidebar, upload the two `.enc` files from Step 2. Paste your saved **GRIDIRON_ARCHIVE_KEY** into the dashboard's password field. **Do not paste the key in ChatGPT.** The dashboard decrypts locally. It does not call The Odds API.
+Another dashboard instance is running. Use **http://127.0.0.1:8501** in your browser, or close the old instance before double-clicking the launcher again.
 
-## What you can see
+### Security and limitations
 
-- Locked player-level receptions and receiving-yard point projections.
-- A single row per matched player and market, with a range and **distinct-line median** across available sportsbooks. Repeated over/under quotes are not counted as extra player forecasts.
-- Individual sportsbook quotes including bookmaker, over/under side, American odds, line, and projection-to-line gap.
-- Separate quote timestamp clocks and filters for players, markets, books and quotes updated after the lock.
-- Actual source snapshot identity and aggregate Phase 19 status when both encrypted archives are supplied.
-
-## What the dashboard DOES NOT demonstrate
-
-- No validated probabilities to beat the offered book line or proved expected value.
-- No official game-day active or injury verification.
-- No opponent coverage, run/pass strategy or verified usage adjustments.
-- No official promoted bets and no verifiable ROI.
-- Book prices and player forecasts remain **research-only**, and the Phase 19 run archived 30 days only.
-
-## Safety and privacy
-
-- Run the app **only on your own Mac**, bound to `127.0.0.1`, not a public hosting service.
-- The encryption key must be the **same key that existed when Phase 19 created these artifacts**. If you rotate the GitHub secret later, you still need the older saved key to decrypt older artifacts.
-- Do not deploy this app publicly, share a public dashboard link or commit the plaintext artifacts. Streamlit runs a local service and maintains the temporary decrypted dataset in local session memory.
-- If you download the repo again for a new dashboard version, don't confuse it with the downloaded Phase 19 encrypted records; the data are not committed in GitHub.
-- Official bets can be considered only after eligibility, injury/scheme context, probability distributions, actual sportsbook prices and prospective accountability are added.
-
-## Optional GitHub offline verification
-
-In Actions, run **GRIDIRON private dashboard offline checks**. It compiles the UI and tests encryption, SHA-256 pairing, duplicate quote deduplication and research-only tagging. This workflow does not use API credits or decrypt any private dataset.
+- Your encrypted files and encryption key stay on your Mac when you use the dashboard locally, bound to `127.0.0.1`; don't deploy or share a public dashboard link.
+- The dashboard makes **no paid odds requests** and does not use API credits.
+- The encrypted ledger may expire from GitHub Actions after **30 days**. Save a private copy. If you lose the encryption key, the archive cannot be opened.
+- The data are **research-only**, not validated betting picks. Official actives, matchup context, real-line probability calibration and expected ROI are not yet integrated.
+- The existing model forecasts and sportsbook quotes are preserved as originally locked by Phase 19; the dashboard does not modify them.
