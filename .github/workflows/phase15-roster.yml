@@ -1,0 +1,26 @@
+name: GRIDIRON Phase 15 authentic roster validation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  roster:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verify identity crosswalk invariants
+        run: python -m unittest -v test_phase15
+      - name: Retrieve NFLverse 2026 roster and audit identifiers
+        run: python -m scripts.phase15 --season 2026 --private-output private_data/roster_2026.json --report-output output/phase15_roster_audit.json
+      - name: Upload AGGREGATE roster audit only
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase15-roster-coverage-summary
+          path: output/phase15_roster_audit.json
+          retention-days: 14
+          if-no-files-found: error
