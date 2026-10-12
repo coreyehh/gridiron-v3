@@ -1,0 +1,52 @@
+name: GRIDIRON free odds coverage check
+on:
+  workflow_dispatch:
+    inputs:
+      test_player_props:
+        description: "Use API credits for ONE upcoming NFL game's RB receiving markets"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "Bookmaker region"
+        type: choice
+        options:
+          - us
+          - us2
+          - ca
+        default: us
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline response and quota safety tests
+        run: python -m unittest -v test_live_odds_smoke
+      - name: Discover upcoming games or test one game's prop coverage
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          CHECK_PROPS: ${{ inputs.test_player_props }}
+          REGION: ${{ inputs.region }}
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "::error::Set ODDS_API_KEY in Settings > Secrets and variables > Actions before running this workflow."
+            exit 1
+          fi
+          if [ "$CHECK_PROPS" = "true" ]; then
+            python scripts/live_odds_smoke.py --enable-odds --region "$REGION" --output output/live_odds_check.json
+          else
+            python scripts/live_odds_smoke.py --region "$REGION" --output output/live_odds_check.json
+          fi
+      - name: Attach aggregate coverage summary, never the API key or raw lines
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridiron-free-odds-smoke
+          path: output/live_odds_check.json
+          if-no-files-found: error
+          retention-days: 7
