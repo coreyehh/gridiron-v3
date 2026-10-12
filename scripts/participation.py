@@ -46,7 +46,7 @@ def split_offense_ids(ids):
     if not isinstance(ids,str) or not ids.strip(): return []
     # Official feed uses semicolon-separated GSIS identifiers.
     members=[s.strip() for s in re.split(r"[;,]",ids) if s.strip()]
-    if any(not re.fullmatch(r"00-\\d{7}",p) for p in members):
+    if any(not re.fullmatch(r"00-\d{7}",p) for p in members):
         raise ValueError("Unexpected player identifier encoding in offense_players")
     return members
 
