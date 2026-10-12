@@ -28,6 +28,8 @@ jobs:
           python-version: '3.11'
       - name: Test normalization and decision gates
         run: python -m unittest -v test_live_market
+      - name: Verify module entrypoint before API request
+        run: python -m scripts.live_market --help > /dev/null
       - name: Probe selected live NFL markets
         if: ${{ inputs.spend_credits }}
         env:
@@ -38,7 +40,7 @@ jobs:
             echo "::error::Add ODDS_API_KEY in repository Actions secrets."
             exit 1
           fi
-          python scripts/live_market.py --fetch --region "$REGION" --summary output/live_market_summary.json --private-output private_data/live_market.json
+          python -m scripts.live_market --fetch --region "$REGION" --summary output/live_market_summary.json --private-output private_data/live_market.json
       - name: Upload AGGREGATE summary only (no player names or quotes)
         if: ${{ inputs.spend_credits }}
         uses: actions/upload-artifact@v4
