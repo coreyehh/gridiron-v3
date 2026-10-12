@@ -1,0 +1,49 @@
+name: GRIDIRON Phase 11 live market board probe
+on:
+  workflow_dispatch:
+    inputs:
+      spend_credits:
+        description: "Request one NFL event's two player-prop markets (costs API credits)"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "Bookmaker region"
+        type: choice
+        options:
+          - us
+          - us2
+          - ca
+        default: us
+permissions:
+  contents: read
+jobs:
+  market:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test normalization and decision gates
+        run: python -m unittest -v test_live_market
+      - name: Probe selected live NFL markets
+        if: ${{ inputs.spend_credits }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          REGION: ${{ inputs.region }}
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "::error::Add ODDS_API_KEY in repository Actions secrets."
+            exit 1
+          fi
+          python scripts/live_market.py --fetch --region "$REGION" --summary output/live_market_summary.json --private-output private_data/live_market.json
+      - name: Upload AGGREGATE summary only (no player names or quotes)
+        if: ${{ inputs.spend_credits }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase11-market-coverage-summary
+          path: output/live_market_summary.json
+          retention-days: 7
+          if-no-files-found: error
