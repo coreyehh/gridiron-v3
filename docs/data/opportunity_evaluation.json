@@ -1,0 +1,100 @@
+{
+  "status": "rb_opportunity_holdout_2025",
+  "train_years": [
+    2021,
+    2022,
+    2023
+  ],
+  "validation_year": 2024,
+  "heldout_year": 2025,
+  "evaluated_at_utc": "2026-10-12T17:36:49.972295+00:00",
+  "sources": [
+    "nflverse player-week stats",
+    "nflverse play-by-play"
+  ],
+  "routes_available": false,
+  "coverage_available": false,
+  "pregame_active_universe_complete": false,
+  "historic_sportsbook_odds_available": false,
+  "roi_calculated": false,
+  "results": [
+    {
+      "market": "receptions",
+      "train_n": 2923,
+      "validation_n": 1004,
+      "test_n": 977,
+      "selection": "RB prior-position and lagged usage, postgame-observed player-week caveat",
+      "status": "evaluated",
+      "baseline": {
+        "mae": 1.2886356705631385,
+        "rmse": 1.6461990004685796,
+        "alpha": 1.0
+      },
+      "opportunity": {
+        "mae": 1.2756719991126495,
+        "rmse": 1.6339226518001568,
+        "alpha": 100.0
+      },
+      "opportunity_mae_change_pct": 1.01,
+      "improves_on_same_population": true
+    },
+    {
+      "market": "receiving_yards",
+      "train_n": 2350,
+      "validation_n": 820,
+      "test_n": 740,
+      "selection": "RB prior-position and lagged usage, postgame-observed player-week caveat",
+      "status": "evaluated",
+      "baseline": {
+        "mae": 13.538996599698102,
+        "rmse": 18.5581076059828,
+        "alpha": 1.0
+      },
+      "opportunity": {
+        "mae": 13.414392088107677,
+        "rmse": 18.421527752727812,
+        "alpha": 100.0
+      },
+      "opportunity_mae_change_pct": 0.92,
+      "improves_on_same_population": true
+    }
+  ],
+  "source_provenance": [
+    {
+      "season": 2021,
+      "rows": 49922,
+      "sha256": "333ad34378e5339d5172717cc83378e908daf02c8699416ab3e17c2ec10f78d8",
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2021.parquet"
+    },
+    {
+      "season": 2022,
+      "rows": 49434,
+      "sha256": "931121d8897779d7944e2a293e92ed8799c8e5cceef84096ac42339003fedc09",
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2022.parquet"
+    },
+    {
+      "season": 2023,
+      "rows": 49665,
+      "sha256": "bd3484731408def6b0ec93225bba2bd7b2c65769ca707a2b9444d891abdc6776",
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2023.parquet"
+    },
+    {
+      "season": 2024,
+      "rows": 49492,
+      "sha256": "3fd2896bc0b911b615142d2f1fabae54a4bbba5ab7b73b28187b118ef8af6a3b",
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2024.parquet"
+    },
+    {
+      "season": 2025,
+      "rows": 48771,
+      "sha256": "c6ecedd6d678cc37ed316b23ef84ee1ec6abb69c514bb11868a7ebd5a367df29",
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2025.parquet"
+    }
+  ],
+  "quality": {
+    "pbp_team_weeks": 2718,
+    "matched_player_weeks": 89504,
+    "total_player_weeks": 94848,
+    "rb_lagged_target_share_observations": 7387
+  }
+}
