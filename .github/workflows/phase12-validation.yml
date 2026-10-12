@@ -1,0 +1,28 @@
+name: GRIDIRON Phase 12 identity and probability validation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  phase12:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test strict identity and probability invariants
+        run: python -m unittest -v test_phase12
+      - name: Build lagged 2021-2025 historical features
+        run: python scripts/ingest.py --seasons 2021 2022 2023 2024 2025 --output output
+      - name: Run held-out synthetic-threshold probability diagnostic
+        run: python -m scripts.phase12 --features output/features.csv --output output/phase12_diagnostic.json
+      - name: Upload aggregate diagnostic only
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase12-historical-diagnostic
+          path: output/phase12_diagnostic.json
+          retention-days: 14
+          if-no-files-found: error
