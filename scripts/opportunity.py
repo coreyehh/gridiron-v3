@@ -57,8 +57,27 @@ def team_volume(pbp):
     out["prior_team_pass_attempts_5"]=out.groupby("team",sort=False)["team_pass_attempts"].transform(lag)
     return out
 
+def normalize_team_column(weekly):
+    """Known nflverse variants only; conflicting identifiers fail closed."""
+    weekly = weekly.copy()
+    candidates = [c for c in ("team", "recent_team", "team_abbr") if c in weekly.columns]
+    if not candidates:
+        raise ValueError("Missing player team column; found: " + str(sorted(weekly.columns)))
+    chosen = candidates[0]
+    for candidate in candidates[1:]:
+        mismatch = weekly[chosen].notna() & weekly[candidate].notna() & (
+            weekly[chosen].astype(str) != weekly[candidate].astype(str)
+        )
+        if mismatch.any():
+            raise ValueError("Conflicting team columns: " + chosen + " and " + candidate)
+    weekly["observed_team"] = weekly[chosen]
+    if weekly.observed_team.isna().all():
+        raise ValueError("All player team identifiers are missing")
+    return weekly
+
 def build_opportunities(weekly, base_features, volume):
-    required={"season","week","player_id","position","recent_team","targets","receptions","receiving_yards","season_type"}
+    weekly=normalize_team_column(weekly)
+    required={"season","week","player_id","position","observed_team","targets","receptions","receiving_yards","season_type"}
     if not required.issubset(weekly.columns):
         raise ValueError("Player stats missing "+str(sorted(required-set(weekly.columns))))
     keys=["season","week","player_id"]
@@ -70,7 +89,7 @@ def build_opportunities(weekly, base_features, volume):
     weekly["receiving_yards"]=pd.to_numeric(weekly.receiving_yards,errors="coerce")
     joined=weekly.merge(volume[["season","week","team","team_pass_attempts",
                                 "prior_team_pass_attempts_5"]],
-                        left_on=["season","week","recent_team"],
+                        left_on=["season","week","observed_team"],
                         right_on=["season","week","team"],how="left",validate="many_to_one")
     joined=joined.sort_values(["player_id","season","week"])
     # share and efficiency calculated in historical week, then shifted before prediction.
