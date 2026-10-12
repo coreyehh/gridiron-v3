@@ -1,0 +1,129 @@
+{
+  "status": "2025_heldout_pass_play_onfield_proxy",
+  "evaluated_at_utc": "2026-10-12T17:58:31.342488+00:00",
+  "train_years": [
+    2021,
+    2022,
+    2023
+  ],
+  "validation_year": 2024,
+  "test_year": 2025,
+  "participation_sources": [
+    {
+      "season": 2021,
+      "rows": 50714,
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2021.parquet",
+      "sha256": "bc16b14c7043e780f995f914331e2f7ebd6661d024e61a2c892d560af04d9af1",
+      "credit": "NFL NextGenStats via nflverse"
+    },
+    {
+      "season": 2022,
+      "rows": 50150,
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2022.parquet",
+      "sha256": "5f8d349316bf68de487ee0eb926706e65f5a8e37078c1faa37cb07cda2bf9e5e",
+      "credit": "NFL NextGenStats via nflverse"
+    },
+    {
+      "season": 2023,
+      "rows": 46168,
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2023.parquet",
+      "sha256": "b157736972248e6f71e0c5ad6c1010b71375a500a63944dc4956c65de263e5a6",
+      "credit": "FTN Data via nflverse"
+    },
+    {
+      "season": 2024,
+      "rows": 45919,
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2024.parquet",
+      "sha256": "5e8cf1f6a11bb2be573c3db1533c28a5658907302d1ad45ca769a4ca35890d7c",
+      "credit": "FTN Data via nflverse"
+    },
+    {
+      "season": 2025,
+      "rows": 45184,
+      "source": "https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2025.parquet",
+      "sha256": "3b26b9487267f011fdbafbce133800ce964c963fdb8b27725abf65663cc46e0f",
+      "credit": "FTN Data via nflverse"
+    }
+  ],
+  "quality": [
+    {
+      "season": 2021,
+      "passing_plays": 20065,
+      "participation_coverage": 1.0,
+      "rb_player_week_counts": 1452
+    },
+    {
+      "season": 2022,
+      "passing_plays": 19455,
+      "participation_coverage": 1.0,
+      "rb_player_week_counts": 1495
+    },
+    {
+      "season": 2023,
+      "passing_plays": 19807,
+      "participation_coverage": 1.0,
+      "rb_player_week_counts": 1430
+    },
+    {
+      "season": 2024,
+      "passing_plays": 19224,
+      "participation_coverage": 1.0,
+      "rb_player_week_counts": 1419
+    },
+    {
+      "season": 2025,
+      "passing_plays": 18822,
+      "participation_coverage": 1.0,
+      "rb_player_week_counts": 1434
+    }
+  ],
+  "terminology": "on-field passing-play appearances; NOT confirmed routes run",
+  "missing_routes": true,
+  "pregame_roster_complete": false,
+  "historical_odds_available": false,
+  "betting_roi_validated": false,
+  "results": [
+    {
+      "market": "receptions",
+      "train_n": 2923,
+      "validation_n": 1004,
+      "test_n": 977,
+      "status": "evaluated",
+      "models": {
+        "phase8_on_same_players": {
+          "mae": 1.27567,
+          "rmse": 1.63392,
+          "alpha": 100.0
+        },
+        "phase9_onfield_proxy": {
+          "mae": 1.27745,
+          "rmse": 1.62947,
+          "alpha": 100.0
+        }
+      },
+      "improvement_pct": -0.14,
+      "improved": false
+    },
+    {
+      "market": "receiving_yards",
+      "train_n": 2350,
+      "validation_n": 820,
+      "test_n": 740,
+      "status": "evaluated",
+      "models": {
+        "phase8_on_same_players": {
+          "mae": 13.41439,
+          "rmse": 18.42153,
+          "alpha": 100.0
+        },
+        "phase9_onfield_proxy": {
+          "mae": 13.40101,
+          "rmse": 18.35969,
+          "alpha": 100.0
+        }
+      },
+      "improvement_pct": 0.1,
+      "improved": true
+    }
+  ]
+}
