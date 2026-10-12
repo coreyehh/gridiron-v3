@@ -37,7 +37,6 @@ class Phase19Tests(unittest.TestCase):
    self.assertEqual(report["existing_price_observed_after_lock"],1)
    self.assertEqual(report["updated_after_lock"],1)
    file=seal_comparisons(restored,rows,report,Path(d),key)
-   doc=decrypt_archive(file,key._signing_key.hex()) if False else None
    self.assertNotIn(b"Example Receiver",file.read_bytes())
    self.assertEqual(len(key.decrypt(file.read_bytes()))>100,True)
  def test_old_quote_observed_after_lock_accepted_and_classified(self):
