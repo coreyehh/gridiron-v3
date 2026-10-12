@@ -19,6 +19,10 @@ jobs:
         run: python scripts/ingest.py --seasons 2021 2022 2023 2024 2025 --output output
       - name: Evaluate chronological historical forecasting baselines
         run: python scripts/evaluate.py --features output/features.csv --output output/evaluation.json
+      - name: Run eligibility-proxy unit tests
+        run: python -m unittest -v test_eligibility
+      - name: Evaluate position-specific prediction baselines
+        run: python scripts/evaluate_eligible.py --features output/features.csv --output output/position_evaluation.json
       - uses: actions/upload-artifact@v4
         with:
           name: historical-features-and-audit
@@ -26,15 +30,17 @@ jobs:
             output/manifest.json
             output/features.csv
             output/evaluation.json
+            output/position_evaluation.json
           retention-days: 30
       - name: Update published dataset manifest
         run: |
           mkdir -p docs/data
           cp output/manifest.json docs/data/manifest.json
           cp output/evaluation.json docs/data/evaluation.json
+          cp output/position_evaluation.json docs/data/position_evaluation.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/data/manifest.json docs/data/evaluation.json
+          git add docs/data/manifest.json docs/data/evaluation.json docs/data/position_evaluation.json
           if ! git diff --cached --quiet; then
             git commit -m 'data: update validated NFLverse manifest'
             git push
