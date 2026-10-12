@@ -32,6 +32,8 @@ def normalize(payload, captured_at_utc):
     if not isinstance(payload,dict) or not isinstance(payload.get("bookmakers"),list):
         raise ValueError("Expected Odds API event odds object")
     event_id=payload.get("id"); kickoff=dt(payload.get("commence_time"))
+    # NFL season starts in the calendar year; Jan/Feb playoff games belong to prior season.
+    derived_season=kickoff.year - (1 if kickoff.month in (1,2) else 0)
     if not event_id:raise ValueError("Missing event ID")
     if captured>=kickoff:raise ValueError("Snapshot at or after kickoff")
     rows=[]
@@ -58,7 +60,9 @@ def normalize(payload, captured_at_utc):
                 except (TypeError,ValueError):
                     continue
                 rows.append({
-                    "event_id":event_id,"home_team":payload.get("home_team"),
+                    "event_id":event_id,"season":derived_season,
+                    "season_source":"derived_from_nfl_kickoff_calendar",
+                    "home_team":payload.get("home_team"),
                     "away_team":payload.get("away_team"),
                     "kickoff_utc":payload["commence_time"],
                     "player_display_name":str(player),"player_id":None,
