@@ -1,0 +1,28 @@
+name: GRIDIRON Phase 13 probability calibration
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verify calibration and holdout boundaries
+        run: python -m unittest -v test_phase13
+      - name: Prepare NFLverse historical features
+        run: python scripts/ingest.py --seasons 2021 2022 2023 2024 2025 --output output
+      - name: Compare original and adjusted probabilities on 2025 holdout
+        run: python -m scripts.phase13 --features output/features.csv --output output/phase13_diagnostic.json
+      - name: Upload aggregate evaluation report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase13-calibration-diagnostic
+          path: output/phase13_diagnostic.json
+          retention-days: 14
+          if-no-files-found: error
