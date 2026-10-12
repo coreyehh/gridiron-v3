@@ -78,8 +78,8 @@ def check(key,enable_odds=False,region="us",bookmakers=DEFAULT_BOOKS):
          "bookmakers":",".join(bookmakers)},key)
     providers,count=summarize(odds,set(MARKETS))
     result.update(status="prop_quote_coverage_checked",odds_request_made=True,
-        "market_keys_requested":list(MARKETS),"provider_coverage":providers,
-        "outcome_count":count,"quota":quota)
+        market_keys_requested=list(MARKETS),provider_coverage=providers,
+        outcome_count=count,quota=quota)
     return result
 
 def main():
