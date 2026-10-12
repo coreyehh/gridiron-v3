@@ -1,0 +1,87 @@
+name: GRIDIRON Phase 19 matchup-locked private board
+on:
+  workflow_dispatch:
+    inputs:
+      use_api_credits:
+        description: "Fetch real player props AFTER forecasting and encryption (uses odds API credits)"
+        type: boolean
+        default: false
+        required: true
+      team_a:
+        description: "NFL team code (BUF for Bills)"
+        required: true
+        default: BUF
+        type: string
+      team_b:
+        description: "NFL team code (LA for Rams)"
+        required: true
+        default: LA
+        type: string
+      kickoff_date:
+        description: "Optional UTC kickoff date YYYY-MM-DD; leave blank to find unique upcoming game"
+        required: false
+        default: ""
+        type: string
+      region:
+        description: "Sportsbook region"
+        type: choice
+        options:
+          - us
+          - us2
+          - ca
+        default: us
+permissions:
+  contents: read
+jobs:
+  locked-board:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Validate two market clocks and sealed player records
+        run: python -m unittest -v test_phase19 test_phase18
+      - name: Verify CLI (does not touch API)
+        run: python -m scripts.phase19 --help >/dev/null
+      - name: Collect exact matchup and build encrypted research board
+        if: ${{ inputs.use_api_credits }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          GRIDIRON_ARCHIVE_KEY: ${{ secrets.GRIDIRON_ARCHIVE_KEY }}
+          TEAM_A: ${{ inputs.team_a }}
+          TEAM_B: ${{ inputs.team_b }}
+          KICKOFF_DATE: ${{ inputs.kickoff_date }}
+          REGION: ${{ inputs.region }}
+        run: |
+          if [ -z "$GRIDIRON_ARCHIVE_KEY" ]; then
+            echo "::error::GRIDIRON_ARCHIVE_KEY missing; no sportsbook request made."
+            exit 1
+          fi
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "::error::ODDS_API_KEY missing; no sportsbook request made."
+            exit 1
+          fi
+          args=(--live --team-a "$TEAM_A" --team-b "$TEAM_B" --region "$REGION")
+          if [ -n "$KICKOFF_DATE" ]; then args+=(--kickoff-date "$KICKOFF_DATE"); fi
+          python -m scripts.phase19 "${args[@]}" --summary output/phase19_aggregate.json
+      - name: Upload aggregate non-player-level report
+        if: ${{ inputs.use_api_credits }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase19-aggregate-audit
+          path: output/phase19_aggregate.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload ENCRYPTED frozen forecasts and quotes only
+        if: ${{ inputs.use_api_credits }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase19-encrypted-private-ledger
+          path: |
+            private_data/phase19_forecasts.enc
+            private_data/phase19_private_comparison.enc
+          retention-days: 30
+          if-no-files-found: error
