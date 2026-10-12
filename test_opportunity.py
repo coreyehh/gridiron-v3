@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from scripts.opportunity import team_volume, build_opportunities
+from scripts.opportunity import team_volume, build_opportunities, normalize_team_column
 
 class OpportunityTests(unittest.TestCase):
     def test_team_volume_is_lagged(self):
@@ -27,6 +27,12 @@ class OpportunityTests(unittest.TestCase):
         self.assertEqual(combined.iloc[1].prior_rb_targets_5,2)
         self.assertEqual(combined.iloc[2].prior_rb_targets_5,11)
         self.assertAlmostEqual(combined.iloc[1].prior_rb_target_share_5,0.05)
+    def test_official_team_column_supported(self):
+        x=normalize_team_column(pd.DataFrame({"team":["CIN"],"player_id":["P1"]}))
+        self.assertEqual(x.observed_team.iloc[0],"CIN")
+    def test_conflicting_team_fields_fail(self):
+        with self.assertRaises(ValueError):
+            normalize_team_column(pd.DataFrame({"team":["CIN"],"recent_team":["BAL"]}))
     def test_missing_columns_rejected(self):
         with self.assertRaises(ValueError):
             build_opportunities(pd.DataFrame({"season":[2025]}),pd.DataFrame(),pd.DataFrame())
