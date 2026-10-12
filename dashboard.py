@@ -1,72 +1,86 @@
-"""Private local dashboard. Launch with: python -m streamlit run dashboard.py --server.address 127.0.0.1"""
+"""Simple private local GRIDIRON board; no live sportsbook requests."""
+import io,zipfile
 import streamlit as st
 from scripts.phase19_dashboard_data import decrypt_document,validate_pair,normalized_quotes,player_summary
 
-st.set_page_config(page_title="GRIDIRON | Private Prop Board",page_icon="🏈",layout="wide")
+st.set_page_config(page_title="GRIDIRON | Player Props",page_icon="🏈",layout="wide")
 st.markdown("""<style>
-[data-testid="stAppViewContainer"]{background:#0e121a;color:#f3f4f6}
-[data-testid="stSidebar"]{background:#161c27}
-[data-testid="stMetric"]{background:#1d2633;padding:14px;border-radius:12px;border:1px solid #364150}
+[data-testid="stAppViewContainer"]{background:#0c1119;color:#f5f6f7}
+[data-testid="stSidebar"]{background:#171e29}
+[data-testid="stMetric"]{background:#1b2532;padding:12px;border-radius:12px}
 h1,h2,h3{letter-spacing:-.03em}
 </style>""",unsafe_allow_html=True)
-st.title("GRIDIRON / Private Player Prop Board")
-st.caption("PHASE 19 · LOCKED PRE-GAME PROJECTIONS × AUTHENTIC BOOKMAKER QUOTES")
-st.warning("RESEARCH ONLY — not a betting recommendation. No injury/actives verification, opponent matchup adjustment, line probability or proven EV.")
-with st.sidebar:
-    st.header("Unlock your private ledger")
-    compfile=st.file_uploader("phase19_private_comparison.enc",type=["enc"],key="comparisons")
-    forefile=st.file_uploader("phase19_forecasts.enc (recommended)",type=["enc"],key="forecasts")
-    secret=st.text_input("GRIDIRON_ARCHIVE_KEY",type="password",
-        help="Enter the encryption key saved to your password manager. Never post it to GitHub or chat.")
-    st.caption("Runs locally on your Mac. Encrypted artifacts are decrypted into this local session only.")
+st.title("GRIDIRON")
+st.caption("PRIVATE PLAYER PROP DASHBOARD · MODEL VS SPORTSBOOK")
 
-if compfile is None or not secret:
-    st.info("Download and extract the encrypted ledger from your Phase 19 run, then upload the .enc files and enter your secret key.")
-    st.markdown("[Open Phase 19 run → Artifacts → phase19-encrypted-private-ledger](https://github.com/coreyehh/gridiron-v3/actions/runs/38320842317)")
+st.subheader("1 · Load your Bills–Rams board")
+uploaded=st.file_uploader("Drop the phase19-encrypted-private-ledger ZIP here",type=["zip","enc"],
+    help="You can upload the GitHub ZIP without extracting anything.")
+key=st.text_input("Your private encryption key",type="password",
+    help="Paste the key you saved when Phase 19 was set up. It stays in this local app.")
+if not uploaded or not key:
+    st.info("Download **phase19-encrypted-private-ledger** from your completed GitHub run. Drop that ZIP above and enter your saved key. No Terminal commands or file extraction required.")
+    st.markdown("[Download your encrypted ledger from GitHub →](https://github.com/coreyehh/gridiron-v3/actions/runs/38320842317)")
     st.stop()
 try:
-    comparison=decrypt_document(compfile.getvalue(),secret)
-    forecast=decrypt_document(forefile.getvalue(),secret) if forefile else None
+    blobs={}
+    raw=uploaded.getvalue()
+    if zipfile.is_zipfile(io.BytesIO(raw)):
+        with zipfile.ZipFile(io.BytesIO(raw)) as z:
+            # Untrusted zip: no extraction to disk, no hidden/directory traversal.
+            for entry in z.infolist():
+                if entry.is_dir() or entry.file_size>10_000_000:continue
+                basename=entry.filename.replace("\\","/").split("/")[-1]
+                if basename in ("phase19_forecasts.enc","phase19_private_comparison.enc"):
+                    if basename in blobs:raise ValueError("Archive contains duplicate encrypted records")
+                    blobs[basename]=z.read(entry)
+    elif uploaded.name.endswith(".enc"):
+        blobs["phase19_private_comparison.enc"]=raw
+    else:raise ValueError("Upload your encrypted Phase 19 ledger ZIP.")
+    if "phase19_private_comparison.enc" not in blobs:
+        raise ValueError("Couldn't locate phase19_private_comparison.enc in the uploaded ZIP")
+    comparison=decrypt_document(blobs["phase19_private_comparison.enc"],key)
+    forecast=decrypt_document(blobs["phase19_forecasts.enc"],key) if "phase19_forecasts.enc" in blobs else None
     validate_pair(comparison,forecast)
     quotes=normalized_quotes(comparison)
-    base=player_summary(quotes)
-except ValueError as ex:
-    st.error(str(ex));st.stop()
+except (ValueError,zipfile.BadZipFile) as error:
+    st.error(str(error));st.stop()
 
-st.success("Encrypted research ledger decrypted locally" +
-    (" — forecast/comparison archive integrity verified." if forecast else " — upload the matching forecast archive to verify its integrity."))
-c1,c2,c3,c4=st.columns(4)
-c1.metric("Locked forecasts",len(forecast.get("predictions",[])) if forecast else "—")
-c2.metric("Comparable quote outcomes",len(quotes))
-c3.metric("Players with quotes",quotes["_player_id"].nunique() if len(quotes) else 0)
-c4.metric("Qualified bets",0)
-audit=comparison.get("summary",{})
-a,b,c=st.columns(3)
-a.metric("All available outcomes",audit.get("outcomes_total","—"))
-b.metric("Existing prices observed after lock",audit.get("existing_price_observed_after_lock","—"))
-c.metric("Book prices updated after lock",audit.get("updated_after_lock","—"))
-st.caption("The bookmaker may have last updated a line before the model's forecast lock, even though the price was collected afterward.")
+st.success("Your private Bills–Rams board is open." if forecast else "Comparison board open. Forecast archive not supplied.")
 if forecast:
-    st.caption(f"Event: {forecast.get('away_team','')} at {forecast.get('home_team','')} | Kickoff UTC: {forecast.get('kickoff_utc','')} | Forecast lock UTC: {forecast.get('locked_at_utc','')}")
-with st.sidebar:
-    st.header("Filters")
-    market=st.selectbox("Market",["All"]+sorted(quotes.Market.unique().tolist()))
+    st.caption(f"{forecast.get('away_team','')} at {forecast.get('home_team','')} · {forecast.get('kickoff_utc','')} kickoff (UTC) · Forecast locked {forecast.get('locked_at_utc','')}")
+metrics=st.columns(3)
+metrics[0].metric("Player projections",len(forecast.get("predictions",[])) if forecast else "—")
+metrics[1].metric("Sportsbook outcomes",len(quotes))
+metrics[2].metric("Matched players",quotes["_player_id"].nunique() if len(quotes) else 0)
+st.caption("Forecasts are research estimates, not approved bets. The 2026 current-form model does not yet include injuries, scheme or calibrated probabilities.")
+st.subheader("2 · Model against the books")
+filter1,filter2,filter3=st.columns(3)
+with filter1:
+    market=st.selectbox("Prop",["All markets","Receptions","Receiving yards"])
+with filter2:
+    players=sorted(quotes.Player.unique().tolist())
+    selected=st.selectbox("Player",["All players"]+players)
+with filter3:
     books=st.multiselect("Sportsbooks",sorted(quotes.Book.unique()),default=sorted(quotes.Book.unique()))
-    player=st.selectbox("Player",["All"]+sorted(quotes.Player.unique().tolist()))
-    fresh=st.checkbox("Book updated after lock only",value=False)
-view=quotes.copy()
-if market!="All":view=view[view.Market==market]
-if player!="All":view=view[view.Player==player]
-view=view[view.Book.isin(books)]
-if fresh:view=view[view["Updated after lock"]]
-st.subheader("Player-by-player projections")
-st.caption("One row per player × market. Gaps use the median DISTINCT sportsbook line, not repeated over/under sides. These are not ranked picks.")
-st.dataframe(player_summary(view),hide_index=True,use_container_width=True,height=450)
-st.subheader("All individual sportsbook outcomes")
-st.caption("Quotes can repeat across books and over/under sides; they are not independent player opportunities.")
-st.dataframe(view.drop(columns="_player_id"),hide_index=True,use_container_width=True,height=450)
-with st.expander("Audit metadata and limitations"):
-    st.json({"matchup":{k:forecast.get(k) for k in ("home_team","away_team","kickoff_utc","locked_at_utc","model_version")} if forecast else "No forecast file",
-        "forecast_archive_verified":bool(forecast),"quote_summary":audit,
-        "calibrated_probabilities":False,"official_actives_verified":False,"qualified_bets":0})
-st.caption("Keep your decryption key private. This viewer does not request odds or contact external services.")
+visible=quotes[quotes.Book.isin(books)].copy()
+if market=="Receptions":visible=visible[visible.Market=="receptions"]
+elif market=="Receiving yards":visible=visible[visible.Market=="receiving_yards"]
+if selected!="All players":visible=visible[visible.Player==selected]
+summ=player_summary(visible)
+if summ.empty:st.info("No matching props. Adjust the filters above.")
+else:
+    simple=summ[["Player","Market","Projection","Median line","Gap to median","Books"]].copy()
+    simple.columns=["PLAYER","PROP","GRIDIRON PROJ.","BOOK LINE (MEDIAN)","PROJ. − LINE","BOOKS"]
+    st.dataframe(simple,hide_index=True,use_container_width=True,height=480)
+    st.caption("Line is the median of distinct observed sportsbook thresholds. Positive gaps are model estimates above the line—not verified OVER edges or probabilities.")
+
+with st.expander("View every sportsbook line and price"):
+    detail=visible[["Player","Market","Book","Side","Line","Odds","Projection","Gap","Updated after lock","Quoted UTC"]].copy()
+    st.dataframe(detail,hide_index=True,use_container_width=True,height=400)
+    st.caption("Over and under quotes for the same player may repeat a line. The table above consolidates them.")
+with st.expander("Audit and modeling limitations"):
+    st.json({"quote_summary":comparison["summary"],"forecast_archive_verified":bool(forecast),
+        "official_player_actives_verified":False,"opponent_matchup_features_included":False,
+        "calibrated_probability_available":False,"qualified_bets":0})
+st.caption("PRIVATE · Browser connects only to this local Mac app (127.0.0.1). Do not deploy with your key or data publicly.")
