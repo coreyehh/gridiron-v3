@@ -1,0 +1,52 @@
+name: GRIDIRON Phase 18 current form and prequote lock
+on:
+  workflow_dispatch:
+    inputs:
+      use_api_credits:
+        description: "Fetch exactly one upcoming game's live props AFTER sealing forecasts (spends odds credits)"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "Sportsbook region"
+        type: choice
+        options:
+          - us
+          - us2
+          - ca
+        default: us
+permissions:
+  contents: read
+jobs:
+  phase18:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verify historical cutoff, locked timestamp and midnight handling
+        run: python -m unittest -v test_phase18 test_phase17
+      - name: Verify CLI no paid call
+        run: python -m scripts.phase18 --help >/dev/null
+      - name: Freeze 2026-informed projections before live odds
+        if: ${{ inputs.use_api_credits }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          REGION: ${{ inputs.region }}
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "::error::Missing ODDS_API_KEY"
+            exit 1
+          fi
+          python -m scripts.phase18 --live --region "$REGION" --summary output/phase18_summary.json
+      - name: Publish aggregate-only research audit
+        if: ${{ inputs.use_api_credits }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase18-prequote-lock-audit
+          path: output/phase18_summary.json
+          retention-days: 14
+          if-no-files-found: error
