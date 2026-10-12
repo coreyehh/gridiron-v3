@@ -10,7 +10,7 @@ import pandas as pd
 
 URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{year}.parquet"
 REQUIRED = {"season", "week", "player_id", "receptions", "receiving_yards",
-            "rushing_yards", "passing_yards"}
+            "rushing_yards", "passing_yards", "position"}
 MEASURES = ("receptions", "receiving_yards", "rushing_yards", "passing_yards")
 
 def download(year, folder):
@@ -37,13 +37,25 @@ def download(year, folder):
 
 def prior_game_features(frame):
     frame = frame.sort_values(["player_id", "season", "week"]).copy()
+    groups = frame.groupby("player_id", sort=False)
+    # All features refer to observations strictly prior to the target week.
+    frame["prior_observations"] = groups.cumcount()
+    # Prior observed roster position, never the target-week position.
+    frame["prior_position"] = groups["position"].transform(
+        lambda s: s.ffill().shift(1)
+    )
     for key in MEASURES:
         frame[key] = pd.to_numeric(frame[key], errors="coerce")
         frame["prior5_" + key] = frame.groupby("player_id", sort=False)[key].transform(
             lambda s: s.shift(1).rolling(5, min_periods=1).mean()
         )
-    return frame[["player_id", "season", "week"] + list(MEASURES)
-                 + ["prior5_" + k for k in MEASURES]]
+        frame["prior3_" + key] = frame.groupby("player_id", sort=False)[key].transform(
+            lambda s: s.shift(1).rolling(3, min_periods=1).mean()
+        )
+    return frame[["player_id", "season", "week", "prior_position",
+                  "prior_observations"] + list(MEASURES)
+                 + ["prior5_" + k for k in MEASURES]
+                 + ["prior3_" + k for k in MEASURES]]
 
 def main():
     parser = argparse.ArgumentParser()
