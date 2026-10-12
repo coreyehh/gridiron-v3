@@ -1,0 +1,74 @@
+{
+  "status": "heldout_player_stats_evaluation",
+  "created_at_utc": "2026-10-12T17:02:48.025449+00:00",
+  "train_years": [
+    2021,
+    2022,
+    2023
+  ],
+  "validation_year": 2024,
+  "test_year": 2025,
+  "evaluated_on": "observed player-week records with >=3 prior entries",
+  "pregame_eligible_universe_verified": false,
+  "bookmaker_odds_available": false,
+  "true_hit_probability_calibrated": false,
+  "roi_backtest_complete": false,
+  "markets": [
+    {
+      "market": "receptions",
+      "train_n": 48210,
+      "validation_n": 17886,
+      "test_n": 18301,
+      "model": "ridge_lagged_stats",
+      "selected_alpha_on_2024": 1.0,
+      "test_2025_model_mae": 0.4029,
+      "test_2025_recent5_mae": 0.371,
+      "test_2025_model_rmse": 0.9279,
+      "test_2025_baseline_rmse": 0.9425,
+      "mae_gain_vs_recent5_pct": -8.59,
+      "wins_mae_vs_baseline": false
+    },
+    {
+      "market": "receiving_yards",
+      "train_n": 48210,
+      "validation_n": 17886,
+      "test_n": 18301,
+      "model": "ridge_lagged_stats",
+      "selected_alpha_on_2024": 1.0,
+      "test_2025_model_mae": 5.1162,
+      "test_2025_recent5_mae": 4.8626,
+      "test_2025_model_rmse": 12.8103,
+      "test_2025_baseline_rmse": 13.1022,
+      "mae_gain_vs_recent5_pct": -5.22,
+      "wins_mae_vs_baseline": false
+    },
+    {
+      "market": "rushing_yards",
+      "train_n": 48210,
+      "validation_n": 17886,
+      "test_n": 18301,
+      "model": "ridge_lagged_stats",
+      "selected_alpha_on_2024": 1.0,
+      "test_2025_model_mae": 2.5086,
+      "test_2025_recent5_mae": 2.3374,
+      "test_2025_model_rmse": 9.1695,
+      "test_2025_baseline_rmse": 9.3065,
+      "mae_gain_vs_recent5_pct": -7.32,
+      "wins_mae_vs_baseline": false
+    },
+    {
+      "market": "passing_yards",
+      "train_n": 48210,
+      "validation_n": 17886,
+      "test_n": 18301,
+      "model": "ridge_lagged_stats",
+      "selected_alpha_on_2024": 1.0,
+      "test_2025_model_mae": 2.8106,
+      "test_2025_recent5_mae": 2.5816,
+      "test_2025_model_rmse": 17.1932,
+      "test_2025_baseline_rmse": 17.3445,
+      "mae_gain_vs_recent5_pct": -8.87,
+      "wins_mae_vs_baseline": false
+    }
+  ]
+}
