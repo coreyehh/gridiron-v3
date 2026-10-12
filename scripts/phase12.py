@@ -69,8 +69,10 @@ def diagnose(features):
         grid=np.unique(np.maximum(0,np.quantile(pv,[.25,.5,.75])).round(1))
         actual=test[market].to_numpy()
         observations=[]
-        for line in grid:
-            if market=="receptions":line=float(math.floor(line)+0.5)
+        # Integer catch props collapse some quantiles to the same half-catch line.
+        # Count each unique threshold once; never inflate the evaluation total.
+        lines=sorted({float(math.floor(x)+0.5) if market=="receptions" else float(x) for x in grid})
+        for line in lines:
             y=(actual>line).astype(float)
             prob=np.array([empirical_over(x,line,residual) for x in pt])
             prior=(val[market].to_numpy()>line).mean()
