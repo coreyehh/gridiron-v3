@@ -111,7 +111,24 @@ def evaluate(quotes,roster,history,source_hashes,captured):
           "forecast_scope":"historical-only-prior-season",
           "book_line_probability":None,"bet_decision":"INSUFFICIENT_DATA"})
         by_market[market]+=1
+    forecast_map={(p["event_id"],p["player_id"],p["market"]):p["point_projection"] for p in projections}
+    gaps=[];covered_quotes=0
+    for q in quotes:
+        home=team_id(q.get("home_team"));away=team_id(q.get("away_team"))
+        if not home or not away:continue
+        status,pid=identity({**q,"home_team":home,"away_team":away},roster)
+        if status!="IDENTITY_MATCHED_NOT_ACTIVE_VERIFIED":continue
+        pred=forecast_map.get((q["event_id"],pid,q["market"]))
+        if pred is None or not isinstance(q.get("line"),(float,int)):continue
+        gap=pred-float(q["line"])
+        gaps.append(gap);covered_quotes+=1
+    spread={"compared_outcomes":covered_quotes,
+       "positive_projection_line_gaps":sum(x>0 for x in gaps),
+       "negative_projection_line_gaps":sum(x<0 for x in gaps),
+       "equal_projection_line_gaps":sum(x==0 for x in gaps),
+       "mean_absolute_projection_line_gap":round(float(np.mean(np.abs(gaps))),3) if gaps else None}
     return projections,{"status":"phase17_historical_only_live_line_comparison",
+        "projection_line_diagnostics":spread,
         "captured_at_utc":captured,"unique_matched_players_market_pairs":len(group),
         "point_projections":len(projections),"projection_count_by_market":dict(by_market),
         "missing_historical_players":missing_history,
