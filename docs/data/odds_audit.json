@@ -1,0 +1,9 @@
+{
+  "status": "awaiting_verified_historical_quotes",
+  "created_at_utc": "2026-10-12T20:28:50.607228+00:00",
+  "historical_quotes_validated": 0,
+  "calibrated_model_predictions_available": false,
+  "backtested_roi_available": false,
+  "bookmaker_market_availability_verified": false,
+  "notes": "No synthetic lines, odds, player mappings or betting ROI."
+}
