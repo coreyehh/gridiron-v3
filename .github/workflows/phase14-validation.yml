@@ -1,0 +1,40 @@
+name: GRIDIRON Phase 14 private ledger validation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run identity, quote and ledger guardrail tests
+        run: python -m unittest -v test_phase14
+      - name: Verify command-line pipeline with synthetic fixture only
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from test_phase14 import Q,R,P
+          folder=Path("private_data")
+          folder.mkdir(exist_ok=True)
+          for file,data in (("quote_fixture.json",{"quotes":[Q]}),
+                            ("roster_fixture.json",R),("projection_fixture.json",P)):
+              (folder/file).write_text(json.dumps(data))
+          PY
+          python -m scripts.phase14 --snapshot private_data/quote_fixture.json --roster private_data/roster_fixture.json --projections private_data/projection_fixture.json --output private_data/phase14_board.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          board=json.loads(Path("private_data/phase14_board.json").read_text())
+          assert board["bets_qualified"]==0
+          assert len(board["rows"])==1
+          assert board["rows"][0]["decision"]=="INSUFFICIENT_DATA"
+          print("Synthetic offline board validated. No real quotes were used.")
+          PY
+      - name: Summarize checks only
+        run: echo "Phase 14 tests passed; NO sportsbook data downloaded or shared, NO wagers qualified."
