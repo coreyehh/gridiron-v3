@@ -20,7 +20,10 @@ class Phase15Tests(unittest.TestCase):
  def test_cross_season_rejected(self):
   with self.assertRaises(ValueError):snapshot_rows(self.frame(),2025,"2026-10-12T21:00:00Z","fixture","abc")
  def test_name_team_temporal_guard(self):
-  rows=snapshot_rows(self.frame(),2026,"2026-10-12T21:00:00Z","fixture","abc")
+  sample=self.frame()
+  # Use an unambiguous name for this timestamp test; same-name opponents must be rejected.
+  sample.loc[sample["team"]=="BAL","full_name"]="Different Player"
+  rows=snapshot_rows(sample,2026,"2026-10-12T21:00:00Z","fixture","abc")
   base={"season":2026,"home_team":"CIN","away_team":"BAL","player_display_name":"Example Player",
         "captured_at_utc":"2026-10-12T22:00:00Z"}
   status,pid=identity(base,rows)
