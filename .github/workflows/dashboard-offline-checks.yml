@@ -1,0 +1,18 @@
+name: GRIDIRON private dashboard offline checks
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas cryptography streamlit
+      - name: Validate private player board parsing and identity preservation
+        run: python -m unittest -v test_dashboard_data
+      - name: Verify UI Python syntax
+        run: python -m py_compile dashboard.py scripts/phase19_dashboard_data.py
