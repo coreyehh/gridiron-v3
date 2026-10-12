@@ -19,7 +19,7 @@ def canonical(name):
     s=unicodedata.normalize("NFKD",name)
     s="".join(c for c in s if not unicodedata.combining(c))
     s=re.sub(r"[^a-z0-9 ]"," ",s.lower())
-    s=re.sub(r"\\b(jr|sr|ii|iii|iv)\\b","",s)
+    s=re.sub(r"\b(jr|sr|ii|iii|iv)\b","",s)
     return " ".join(s.split())
 
 def match_player(name,team,records,asof_season):
