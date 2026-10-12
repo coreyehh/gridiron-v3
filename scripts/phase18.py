@@ -30,9 +30,11 @@ def fetch_schedule(folder):
     return df,sha(path)
 def target_game(schedule,season,home,away,kickoff,asof):
     # Exact game-day + teams + season and uniquely scheduled game.
-    date=utc(kickoff).date().isoformat()
+    # Schedule uses US local gameday; late games can be next calendar day in UTC.
+    date=utc(kickoff).date()
+    days=pd.to_datetime(schedule.gameday,errors="coerce").dt.date
     matching=schedule[(schedule.season==season)&(schedule.home_team==home)&
-                      (schedule.away_team==away)&(schedule.gameday.astype(str)==date)]
+                      (schedule.away_team==away)&days.map(lambda d:d is not None and pd.notna(d) and 0<=(date-d).days<=1)]
     if len(matching)!=1:raise ValueError("Event cannot be uniquely mapped to season schedule")
     game=matching.iloc[0]
     if game.game_type!="REG":raise ValueError("Only regular season evaluated")
