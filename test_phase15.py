@@ -31,6 +31,11 @@ class Phase15Tests(unittest.TestCase):
   self.assertEqual(pid,"00-0000001")
   old={**base,"captured_at_utc":"2026-10-12T20:00:00Z"}
   self.assertEqual(identity(old,rows)[0],"UNRESOLVED")
+ def test_same_name_on_opposing_teams_is_ambiguous(self):
+  rows=snapshot_rows(self.frame(),2026,"2026-10-12T21:00:00Z","fixture","abc")
+  q={"season":2026,"home_team":"CIN","away_team":"BAL",
+     "player_display_name":"Example Player Jr.","captured_at_utc":"2026-10-12T22:00:00Z"}
+  self.assertEqual(identity(q,rows)[0],"AMBIGUOUS")
  def test_multiple_player_ids_rejected(self):
   f=pd.concat([self.frame(),pd.DataFrame([{"season":2026,"team":"CIN",
    "full_name":"Example Player","gsis_id":"00-9999999"}])],ignore_index=True)
