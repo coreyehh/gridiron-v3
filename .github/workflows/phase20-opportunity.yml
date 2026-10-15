@@ -1,0 +1,56 @@
+name: GRIDIRON Phase 20 opportunity and volume
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_data:
+        description: "Download authentic 2025–2026 NFLverse data; no sportsbook requests"
+        type: boolean
+        default: false
+        required: true
+      team_a:
+        description: "Team code (e.g. SEA)"
+        type: string
+        default: SEA
+        required: true
+      team_b:
+        description: "Opponent team code (e.g. DEN)"
+        type: string
+        default: DEN
+        required: true
+      week:
+        description: "2026 regular-season week"
+        type: string
+        default: '6'
+        required: true
+permissions:
+  contents: read
+jobs:
+  volume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test team opportunity logic and week cutoff
+        run: python -m unittest -v test_phase20_opportunity
+      - name: Validate CLI without requests
+        run: python -m scripts.phase20_opportunity --help >/dev/null
+      - name: Build real research board in GitHub run summary
+        if: ${{ inputs.run_real_data }}
+        env:
+          TEAM_A: ${{ inputs.team_a }}
+          TEAM_B: ${{ inputs.team_b }}
+          WEEK: ${{ inputs.week }}
+        run: |
+          python -m scripts.phase20_opportunity --week "$WEEK" --team-a "$TEAM_A" --team-b "$TEAM_B"
+      - name: Attach readable report for research
+        if: ${{ inputs.run_real_data }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase20-team-opportunity-report
+          path: output/phase20_opportunity.json
+          retention-days: 30
+          if-no-files-found: error
