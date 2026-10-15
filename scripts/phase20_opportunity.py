@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from scripts.ingest import download
 from scripts.phase18 import fetch_schedule,completed_weeks
-from scripts.phase15 import team_code
+from scripts.phase15 import team_code,acquire
 
 VERSION="phase20-opportunity-v1"
 TEAM_FIELD_CANDIDATES=("recent_team","team")
@@ -158,6 +158,12 @@ def run(year,week,club1,club2,folder):
     games=team_games(selected)
     projections=opportunity_forecast(games,sch,club1,club2,allowed)
     players=player_forecast(selected,projections[club1],allowed,club1)+player_forecast(selected,projections[club2],allowed,club2)
+    roster,roster_audit=acquire(2026,folder)
+    name_map={(r["player_id"],r["team"]):r["player_name"] for r in roster}
+    for p in players:
+        p["player"]=name_map.get((p["player_id"],p["team"]))
+        p["identity_matched"]=bool(p["player"])
+    digests["roster"]=roster_audit["source_sha256"]
     return {"model_version":VERSION,"status":"unvalidated_opportunity_research",
        "matchup":f"{club1} vs {club2}","target_week":week,
        "completed_2026_weeks":sorted(allowed),"team_projection":projections,
@@ -175,11 +181,11 @@ def markdown(report):
     for team,vals in report["team_projection"].items():
         lines.append(f"| {team} | {vals['pass_attempts']['projection']:.1f} | {vals['rush_attempts']['projection']:.1f} |")
     lines+=["","## Player opportunity forecast","",
-        "| Player ID | Team | Targets | Receptions | Rec yards | Role sample games |",
+        "| Player | Team | Targets | Receptions | Rec yards | Role sample games |",
         "|---|---|---:|---:|---:|---:|"]
     for p in sorted(report["player_projections"],key=lambda r:r["targets_projection"],reverse=True)[:40]:
-        lines.append(f"| {p['player_id']} | {p['team']} | {p['targets_projection']:.1f} | {p['receptions_projection']:.1f} | {p['receiving_yards_projection']:.1f} | {p['observed_games']} |")
-    lines+=["","Model does **not** know confirmed actives, routes, OL or defensive coverage, sportsbook price or line probability. Player IDs are GSIS identifiers until a verified current roster name-join is attached.",""]
+        lines.append(f"| {p.get('player') or 'Unmatched identity'} | {p['team']} | {p['targets_projection']:.1f} | {p['receptions_projection']:.1f} | {p['receiving_yards_projection']:.1f} | {p['observed_games']} |")
+    lines+=["","Model does **not** know confirmed actives, routes, OL or defensive coverage, sportsbook price or line probability. Players without a verified 2026 roster identity are labeled as unmatched.",""]
     return "\n".join(lines)
 def main():
     p=argparse.ArgumentParser()
