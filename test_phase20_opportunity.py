@@ -42,6 +42,19 @@ class OpportunityTests(unittest.TestCase):
         fa=player_forecast(a,p["BUF"],{1,2,3,4},"BUF")
         fb=player_forecast(b,p["BUF"],{1,2,3,4},"BUF")
         self.assertEqual(fa,fb)
+    def test_negative_receiving_yards_are_valid(self):
+        h=sample()
+        h.loc[h.player_id=="wrBUF","receiving_yards"]=-3.0
+        normalized=normalize(h)
+        self.assertTrue((normalized.loc[normalized.player_id=="wrBUF","receiving_yards"]==-3.0).all())
+        self.assertGreater(len(team_games(h)),0)
+    def test_missing_receiving_yards_only_safe_for_no_targets(self):
+        h=sample()
+        h.loc[h.player_id=="qbBUF","receiving_yards"]=float("nan")
+        self.assertFalse(normalize(h).receiving_yards.isna().any())
+        h.loc[h.player_id=="wrBUF","receiving_yards"]=float("nan")
+        with self.assertRaises(ValueError):
+            normalize(h)
     def test_missing_targets_fail_closed(self):
         with self.assertRaises(ValueError):
             team_games(sample().drop(columns=["targets"]))
