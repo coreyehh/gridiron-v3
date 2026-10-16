@@ -38,6 +38,8 @@ def score_baseline(games,club,allowed,measure):
 def player_naive(previous,club,allowed):
     prior=previous[(previous.season==2026)&previous.week.isin(allowed)&
                    (previous.team_code==club)]
+    weeks=sorted(prior.week.unique())[-3:]
+    prior=prior[prior.week.isin(weeks)]
     count=prior.week.nunique()
     if count<1:return {}
     # Missing player rows counted as zero, not a free prediction of only healthy starters.
