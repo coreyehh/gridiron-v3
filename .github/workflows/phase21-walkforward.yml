@@ -1,0 +1,50 @@
+name: GRIDIRON Phase 21 honest walk-forward evaluation
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_data:
+        description: "Backtest completed 2026 games using NFLverse data (NO sportsbook API credits)"
+        type: boolean
+        default: false
+        required: true
+      first_week:
+        description: "First test week (minimum 2)"
+        type: string
+        default: '2'
+        required: true
+      last_week:
+        description: "Last test week (only completed weeks will be scored)"
+        type: string
+        default: '18'
+        required: true
+permissions:
+  contents: read
+jobs:
+  walk-forward:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verify no test-week leakage and scoreboard segmentation
+        run: python -m unittest -v test_phase21_walkforward test_phase20_opportunity
+      - name: Confirm CLI
+        run: python -m scripts.phase21_walkforward --help >/dev/null
+      - name: Measure actual walk-forward errors
+        if: ${{ inputs.run_real_data }}
+        env:
+          FIRST_WEEK: ${{ inputs.first_week }}
+          LAST_WEEK: ${{ inputs.last_week }}
+        run: |
+          python -m scripts.phase21_walkforward --first-week "$FIRST_WEEK" --last-week "$LAST_WEEK"
+      - name: Publish nonlicensed evaluation record
+        if: ${{ inputs.run_real_data }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase21-walkforward-evaluation
+          path: output/phase21_accuracy.json
+          retention-days: 30
+          if-no-files-found: error
