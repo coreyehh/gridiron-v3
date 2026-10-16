@@ -32,7 +32,14 @@ def normalize(frame):
         raise ValueError("Duplicate player-week")
     for col in ("attempts","carries","targets","receptions","receiving_yards"):
         df[col]=pd.to_numeric(df[col],errors="coerce")
-        if df[col].isna().any() or (df[col]<0).any():raise ValueError("Missing/negative "+col)
+        # A completed reception can lose yards. Never reject negative yardage.
+        if col=="receiving_yards":
+            safe_zero=df[col].isna() & df["targets"].eq(0) & df["receptions"].eq(0)
+            df.loc[safe_zero,col]=0.0
+            if df[col].isna().any():
+                raise ValueError("Missing receiving_yards with receiving involvement")
+        elif df[col].isna().any() or (df[col]<0).any():
+            raise ValueError("Missing/negative "+col)
     return df
 
 def team_games(frame):
