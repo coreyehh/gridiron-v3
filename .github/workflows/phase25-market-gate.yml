@@ -1,0 +1,57 @@
+name: GRIDIRON Phase 25 market price and eligibility audit
+on:
+  workflow_dispatch:
+    inputs:
+      request_real_book_odds:
+        description: "OFF by default; checking uses API credits for ONE upcoming NFL event"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "Book region if live is opted into"
+        type: choice
+        options: [us, us2, ca]
+        default: us
+      team_a:
+        description: "Optional matchup team code; blank means next NFL game"
+        type: string
+        default: ''
+      team_b:
+        description: "Optional second matchup team code"
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  market-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test pricing, timestamp, player and eligibility gates
+        run: python -m unittest -v test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Validate command
+        run: python -m scripts.phase25_market_gate --help >/dev/null
+      - name: No-credits price math and evidence audit
+        if: ${{ !inputs.request_real_book_odds }}
+        run: python -m scripts.phase25_market_gate
+      - name: Opt-in one-game authentic odds evidence audit
+        if: ${{ inputs.request_real_book_odds }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          TEAM_A: ${{ inputs.team_a }}
+          TEAM_B: ${{ inputs.team_b }}
+          REGION: ${{ inputs.region }}
+        run: |
+          python -m scripts.phase25_market_gate --live --region "$REGION" --team-a "$TEAM_A" --team-b "$TEAM_B"
+      - name: Publish safe aggregate checks only
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase25-market-integrity-aggregate
+          path: output/phase25_aggregate.json
+          retention-days: 30
+          if-no-files-found: error
