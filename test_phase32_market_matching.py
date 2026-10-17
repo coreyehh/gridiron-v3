@@ -72,6 +72,13 @@ class Phase32Tests(unittest.TestCase):
         self.assertEqual(a["counts"]["quote_source_predates_frozen_lock"],2)
         self.assertEqual(a["counts"].get("book_source_timestamp_after_lock",0),0)
         self.assertEqual(a["qualified_bets"],0)
+    def test_two_hour_old_book_quote_is_rejected_as_stale(self):
+        stale=quotes()
+        for r in stale:r["quoted_at_utc"]="2026-10-17T12:59:00Z"
+        result=compare(snapshot(),event(),stale,CAPTURE)
+        self.assertEqual(result["counts"]["stale_or_invalid_quotes"],2)
+        self.assertEqual(result["counts"].get("matched_valid_two_sided_pairs",0),0)
+
     def test_unpaired_market_is_not_a_valid_pair(self):
         a=compare(snapshot(),event(),quotes()[:1],CAPTURE)
         self.assertEqual(a["counts"].get("matched_valid_two_sided_pairs",0),0)
