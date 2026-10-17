@@ -45,7 +45,7 @@ class RoleTests(unittest.TestCase):
         h,s=sample()
         a=backtest(h,s,4,4)
         h2=h.copy()
-        h2.loc[(h2.season==2026)&(h2.week==4)&(h2.player_id=="wrBUF"),"targets"]=900
+        h2.loc[(h2.season==2026)&(h2.week==4)&(h2.player_id=="wrBUF"),"receiving_yards"]=300
         b=backtest(h2,s,4,4)
         # Outcomes change *accuracy*, not the historical model's features.
         self.assertEqual(a["player_games"],b["player_games"])
