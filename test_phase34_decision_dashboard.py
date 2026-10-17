@@ -61,8 +61,14 @@ class Phase34Tests(unittest.TestCase):
             build(x)
     def test_no_real_player_prices_or_ev_in_json(self):
         data=build(snapshot())
-        contents=str(data)
-        self.assertNotIn("american_odds",contents)
-        self.assertNotIn("bookmaker",contents)
         self.assertEqual(data["qualified_bets"],0)
+        self.assertFalse(data["individual_current_book_lines_available"])
+        for game in data["games"]:
+            for player in game["players"]:
+                self.assertNotIn("american_odds",player)
+                self.assertNotIn("bookmaker_name",player)
+                self.assertNotIn("offered_line",player)
+                self.assertIsNone(player["bookmaker_line_specific_probability"])
+                self.assertIsNone(player["expected_roi"])
+                self.assertFalse(player["qualified_play"])
 if __name__=="__main__":unittest.main()
