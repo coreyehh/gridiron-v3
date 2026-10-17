@@ -1,0 +1,53 @@
+name: GRIDIRON Phase 27 opponent context and backtest
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_data:
+        description: "Build genuine Phase 27 matchup board and compare historical player error"
+        type: boolean
+        default: true
+        required: true
+      team_a:
+        description: "Optional team code; both empty means next future game"
+        type: string
+        default: ''
+      team_b:
+        description: "Optional opponent code"
+        type: string
+        default: ''
+      week:
+        description: "Week or 0 for next scheduled future date"
+        type: string
+        default: '0'
+permissions:
+  contents: read
+jobs:
+  phase27:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Validate prior-only positional matchup features and previous phases
+        run: python -m unittest -v test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Verify CLI
+        run: python -m scripts.phase27_matchup_context --help >/dev/null
+      - name: Real 2026 matchup context and walk-forward player error
+        if: ${{ inputs.run_real_data }}
+        env:
+          TEAM_A: ${{ inputs.team_a }}
+          TEAM_B: ${{ inputs.team_b }}
+          WEEK: ${{ inputs.week }}
+        run: |
+          python -m scripts.phase27_matchup_context --team-a "$TEAM_A" --team-b "$TEAM_B" --week "$WEEK" --run-backtest
+      - name: Publish accessible public-data report
+        if: ${{ inputs.run_real_data }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase27-matchup-context-report
+          path: output/phase27_matchup_context.json
+          retention-days: 30
+          if-no-files-found: error
