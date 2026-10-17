@@ -1,0 +1,50 @@
+name: GRIDIRON Phase 22 script and uncertainty audit
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_data:
+        description: "Evaluate Phase22 on completed NFLverse games; no odds API calls"
+        type: boolean
+        default: false
+        required: true
+      first_week:
+        description: "First evaluation week"
+        type: string
+        default: '2'
+        required: true
+      last_week:
+        description: "Last evaluation week, completed weeks only"
+        type: string
+        default: '18'
+        required: true
+permissions:
+  contents: read
+jobs:
+  phase22:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test Phase 20-22 data safeguards and uncertainty logic
+        run: python -m unittest -v test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Confirm Phase 22 CLI
+        run: python -m scripts.phase22_script_intervals --help >/dev/null
+      - name: Walk-forward live-data evaluation
+        if: ${{ inputs.run_real_data }}
+        env:
+          FIRST_WEEK: ${{ inputs.first_week }}
+          LAST_WEEK: ${{ inputs.last_week }}
+        run: |
+          python -m scripts.phase22_script_intervals --first-week "$FIRST_WEEK" --last-week "$LAST_WEEK"
+      - name: Archive public-data summary only
+        if: ${{ inputs.run_real_data }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase22-script-uncertainty-audit
+          path: output/phase22_diagnostics.json
+          retention-days: 30
+          if-no-files-found: error
