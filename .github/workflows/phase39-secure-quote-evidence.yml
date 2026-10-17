@@ -1,0 +1,76 @@
+name: GRIDIRON Phase 39 official inactives and encrypted FanDuel evidence
+on:
+  workflow_dispatch:
+    inputs:
+      probe_official:
+        description: "Fetch official NFL inactives page (free, default yes)"
+        type: boolean
+        default: true
+        required: true
+      archive_one_live_fanduel_event:
+        description: "OFF by default. Requires QUOTE_ARCHIVE_KEY secret; costs Odds API credits"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "FanDuel region"
+        type: choice
+        options: [us, us2, ca]
+        default: us
+      event_id:
+        description: "Optional Odds API event ID; blank auto-selects one eligible future fixture"
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  phase39:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test encrypted archived evidence and all prior regression gates
+        run: python -m unittest -v test_phase39_secure_quote_evidence test_phase38_official_calibration test_phase37_gameday_integration test_phase36_evidence_chain test_phase35_fanduel_portfolio test_phase34_decision_dashboard test_phase33_probability_evidence test_phase32_market_matching test_phase31_accountability test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Offline official NFL page and archive readiness
+        if: ${{ !inputs.archive_one_live_fanduel_event }}
+        env:
+          PROBE: ${{ inputs.probe_official }}
+        run: |
+          if [ "$PROBE" = "true" ]; then
+            python -m scripts.phase39_secure_quote_evidence --probe-official
+          else
+            python -m scripts.phase39_secure_quote_evidence
+          fi
+      - name: Explicitly requested one paid FanDuel encrypted quote capture
+        if: ${{ inputs.archive_one_live_fanduel_event }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          QUOTE_ARCHIVE_KEY: ${{ secrets.QUOTE_ARCHIVE_KEY }}
+          PROBE: ${{ inputs.probe_official }}
+          REGION: ${{ inputs.region }}
+          EVENT_ID: ${{ inputs.event_id }}
+        run: |
+          if [ "$PROBE" = "true" ]; then
+            python -m scripts.phase39_secure_quote_evidence --probe-official --live --region "$REGION" --event-id "$EVENT_ID"
+          else
+            python -m scripts.phase39_secure_quote_evidence --live --region "$REGION" --event-id "$EVENT_ID"
+          fi
+      - name: Public-safe aggregate only
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase39-safe-official-and-fanduel-status
+          path: output/phase39/evidence_summary.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Encrypted ciphertext only, no decrypted lines or keys
+        if: ${{ inputs.archive_one_live_fanduel_event }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase39-ENCRYPTED-fanduel-quote-archive
+          path: output/phase39/fanduel_archive.fernet
+          if-no-files-found: error
+          retention-days: 30
