@@ -1,0 +1,53 @@
+name: GRIDIRON Phase 29 route-source and target-density research
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_data:
+        description: "Check participation-feed availability and evaluate authentic snap-based proxy"
+        type: boolean
+        default: true
+        required: true
+      team_a:
+        description: "Optional team code; leave both blank for next game"
+        type: string
+        default: ''
+      team_b:
+        description: "Optional opponent team code"
+        type: string
+        default: ''
+      week:
+        description: "Week or 0 for next upcoming game"
+        type: string
+        default: '0'
+permissions:
+  contents: read
+jobs:
+  phase29:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verify target-density, route-source safeguards, and previous phases
+        run: python -m unittest -v test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Check CLI
+        run: python -m scripts.phase29_route_readiness --help >/dev/null
+      - name: Real player snap density challenge and participation probe
+        if: ${{ inputs.run_real_data }}
+        env:
+          TEAM_A: ${{ inputs.team_a }}
+          TEAM_B: ${{ inputs.team_b }}
+          WEEK: ${{ inputs.week }}
+        run: |
+          python -m scripts.phase29_route_readiness --team-a "$TEAM_A" --team-b "$TEAM_B" --week "$WEEK"
+      - name: Publish readable route-readiness audit
+        if: ${{ inputs.run_real_data }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase29-route-readiness-audit
+          path: output/phase29_route_readiness.json
+          retention-days: 30
+          if-no-files-found: error
