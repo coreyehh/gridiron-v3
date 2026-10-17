@@ -1,0 +1,56 @@
+name: GRIDIRON Phase 38 NFL inactive source and prospective calibration audit
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_history:
+        description: "Run genuine complete-weeks-only nflverse chronological threshold audit (free)"
+        type: boolean
+        default: true
+        required: true
+      probe_official_nfl:
+        description: "Fetch official NFL inactives page over HTTPS (does not certify any player)"
+        type: boolean
+        default: true
+        required: true
+      bankroll:
+        description: "Bankroll in dollars"
+        type: string
+        default: '1000'
+        required: true
+      unit_percent:
+        description: "1 unit as percent of bankroll"
+        type: choice
+        options: ['0.5', '1', '2']
+        default: '1'
+permissions:
+  contents: read
+jobs:
+  phase38:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Validate NFL source audit, prospective offer gates and all regression tests
+        run: python -m unittest -v test_phase38_official_calibration test_phase37_gameday_integration test_phase36_evidence_chain test_phase35_fanduel_portfolio test_phase34_decision_dashboard test_phase33_probability_evidence test_phase32_market_matching test_phase31_accountability test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Run real historical audit and official NFL source probe
+        env:
+          REAL_HISTORY: ${{ inputs.run_real_history }}
+          PROBE_NFL: ${{ inputs.probe_official_nfl }}
+          BANKROLL: ${{ inputs.bankroll }}
+          UNIT_PERCENT: ${{ inputs.unit_percent }}
+        run: |
+          args=()
+          if [ "$REAL_HISTORY" = "true" ]; then args+=(--run-real-history); fi
+          if [ "$PROBE_NFL" = "true" ]; then args+=(--probe-official-nfl); fi
+          python -m scripts.phase38_official_calibration --bankroll "$BANKROLL" --unit-percent "$UNIT_PERCENT" "${args[@]}"
+      - name: Publish public-safe official webpage and calibration audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase38-official-nfl-source-and-calibration-readiness
+          path: output/phase38_official_and_calibration.json
+          retention-days: 30
+          if-no-files-found: error
