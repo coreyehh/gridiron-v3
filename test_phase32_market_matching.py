@@ -61,8 +61,14 @@ class Phase32Tests(unittest.TestCase):
         self.assertNotIn("book-one",str(r))
     def test_book_quote_before_freeze_cannot_be_marked_post_lock(self):
         prior=quotes()
-        for r in prior:r["quoted_at_utc"]="2026-10-17T12:59:00Z"
-        a=compare(snapshot(),event(),prior,CAPTURE)
+        earlier_capture="2026-10-17T13:10:00Z"
+        for r in prior:
+            r["quoted_at_utc"]="2026-10-17T12:59:00Z"
+            r["captured_at_utc"]=earlier_capture
+        # The source quote is before the 13:00 lock, but the 13:10 capture
+        # is within the one-hour staleness guard. Test the timing flag rather
+        # than violating a separate safety requirement.
+        a=compare(snapshot(),event(),prior,earlier_capture)
         self.assertEqual(a["counts"]["quote_source_predates_frozen_lock"],2)
         self.assertEqual(a["counts"].get("book_source_timestamp_after_lock",0),0)
         self.assertEqual(a["qualified_bets"],0)
