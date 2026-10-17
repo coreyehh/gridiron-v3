@@ -1,0 +1,82 @@
+name: GRIDIRON Phase 37 integrated FanDuel game-day evidence board
+on:
+  workflow_dispatch:
+    inputs:
+      bankroll:
+        description: "Bankroll in dollars, e.g. 1000"
+        type: string
+        default: '1000'
+        required: true
+      unit_percent:
+        description: "1 unit as percentage of bankroll"
+        type: choice
+        options: ['0.5', '1', '2']
+        default: '1'
+        required: true
+      include_prior_position_history:
+        description: "Use prior-week positions to filter non-skill players (free NFLverse data)"
+        type: boolean
+        default: true
+        required: true
+      request_live_fanduel:
+        description: "OFF by default; opt in to ONE live FanDuel event, uses Odds API credits"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "FanDuel market region"
+        type: choice
+        options: [us, us2, ca]
+        default: us
+      event_id:
+        description: "Optional provider event ID; blank selects next frozen upcoming matchup"
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  phase37:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test Phase37 live matching, private quote policy and all prior safeguards
+        run: python -m unittest -v test_phase37_gameday_integration test_phase36_evidence_chain test_phase35_fanduel_portfolio test_phase34_decision_dashboard test_phase33_probability_evidence test_phase32_market_matching test_phase31_accountability test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Compile integrated game-day board without paid requests
+        if: ${{ !inputs.request_live_fanduel }}
+        env:
+          BANKROLL: ${{ inputs.bankroll }}
+          UNIT_PERCENT: ${{ inputs.unit_percent }}
+          POSITION_HISTORY: ${{ inputs.include_prior_position_history }}
+        run: |
+          if [ "$POSITION_HISTORY" = "true" ]; then
+            python -m scripts.phase37_gameday_integration --bankroll "$BANKROLL" --unit-percent "$UNIT_PERCENT" --use-positions
+          else
+            python -m scripts.phase37_gameday_integration --bankroll "$BANKROLL" --unit-percent "$UNIT_PERCENT"
+          fi
+      - name: Explicitly opted-in single-game live FanDuel board
+        if: ${{ inputs.request_live_fanduel }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          BANKROLL: ${{ inputs.bankroll }}
+          UNIT_PERCENT: ${{ inputs.unit_percent }}
+          POSITION_HISTORY: ${{ inputs.include_prior_position_history }}
+          REGION: ${{ inputs.region }}
+          EVENT_ID: ${{ inputs.event_id }}
+        run: |
+          if [ "$POSITION_HISTORY" = "true" ]; then
+            python -m scripts.phase37_gameday_integration --bankroll "$BANKROLL" --unit-percent "$UNIT_PERCENT" --use-positions --live-fanduel --region "$REGION" --event-id "$EVENT_ID"
+          else
+            python -m scripts.phase37_gameday_integration --bankroll "$BANKROLL" --unit-percent "$UNIT_PERCENT" --live-fanduel --region "$REGION" --event-id "$EVENT_ID"
+          fi
+      - name: Publish public safe HTML dashboard, player research and aggregated FanDuel checks
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase37-fanduel-integrated-decision-dashboard
+          path: output/phase37/
+          if-no-files-found: error
+          retention-days: 30
