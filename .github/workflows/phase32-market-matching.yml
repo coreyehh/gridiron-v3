@@ -1,0 +1,50 @@
+name: GRIDIRON Phase 32 locked forecast market comparison
+on:
+  workflow_dispatch:
+    inputs:
+      request_real_book_odds:
+        description: "OFF by default. Check to spend API credits on ONE frozen Week 6 matchup"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "Region for explicit real odds call"
+        type: choice
+        options: [us, us2, ca]
+        default: us
+      event_id:
+        description: "Optional Odds API event ID; empty selects first eligible frozen matchup"
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  phase32:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verify market matching and regression safety
+        run: python -m unittest -v test_phase32_market_matching test_phase31_accountability test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Offline market-matching audit without API credits
+        if: ${{ !inputs.request_real_book_odds }}
+        run: python -m scripts.phase32_market_matching
+      - name: One explicitly opted-in frozen-matchup book audit
+        if: ${{ inputs.request_real_book_odds }}
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          REGION: ${{ inputs.region }}
+          EVENT_ID: ${{ inputs.event_id }}
+        run: |
+          python -m scripts.phase32_market_matching --live --region "$REGION" --event-id "$EVENT_ID"
+      - name: Upload aggregate-only market validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase32-safe-market-comparison
+          path: output/phase32_market_match_aggregate.json
+          retention-days: 30
+          if-no-files-found: error
