@@ -1,0 +1,42 @@
+name: GRIDIRON Phase 36 official evidence and parlay dependence readiness
+on:
+  workflow_dispatch:
+    inputs:
+      bankroll:
+        description: "Bankroll in dollars (default 1000)"
+        type: string
+        default: '1000'
+        required: true
+      unit_percent:
+        description: "One unit percentage of bankroll"
+        type: choice
+        options: ['0.5', '1', '2']
+        default: '1'
+        required: true
+permissions:
+  contents: read
+jobs:
+  phase36:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test provenance, dependence, FanDuel staking and earlier safeguards
+        run: python -m unittest -v test_phase36_evidence_chain test_phase35_fanduel_portfolio test_phase34_decision_dashboard test_phase33_probability_evidence test_phase32_market_matching test_phase31_accountability test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Build frozen research evidence chain and bankroll gate
+        env:
+          BANKROLL: ${{ inputs.bankroll }}
+          UNIT_PERCENT: ${{ inputs.unit_percent }}
+        run: |
+          python -m scripts.phase36_evidence_chain --bankroll "$BANKROLL" --unit-percent "$UNIT_PERCENT"
+      - name: Upload safe provenance and parlay readiness aggregate
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase36-evidence-and-parlay-dependence-audit
+          path: output/phase36_evidence_chain.json
+          retention-days: 45
+          if-no-files-found: error
