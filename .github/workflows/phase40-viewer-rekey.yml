@@ -1,0 +1,59 @@
+name: GRIDIRON private ledger viewer - change encryption key
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Phase40 successful ledger run ID"
+        type: string
+        required: true
+        default: '39061690969'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  change_key:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test private re-encryption and existing ledger checks
+        run: python -m unittest -v test_phase40_viewer_rekey test_phase40_prospective_ledger test_phase39_secure_quote_evidence
+      - name: Ensure both secrets exist before retrieving archive
+        env:
+          OLD: ${{ secrets.QUOTE_ARCHIVE_KEY }}
+          NEW: ${{ secrets.QUOTE_VIEWER_KEY }}
+        run: |
+          python -c 'import os; from scripts.phase39_secure_quote_evidence import verify_cipher_key; verify_cipher_key(os.environ.get("OLD")); verify_cipher_key(os.environ.get("NEW"))'
+      - name: Download existing encrypted Phase40 ledger
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          if ! [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]; then echo "Invalid run ID"; exit 1; fi
+          mkdir -p private_data/phase40
+          gh run download "$SOURCE_RUN_ID" --repo "${{ github.repository }}" \
+            --name phase40-ENCRYPTED-locked-and-settled-ledgers --dir private_data/phase40
+          test -s private_data/phase40/locked_ledger.fernet
+      - name: Re-encrypt existing ledger without exposing any plaintext
+        env:
+          QUOTE_ARCHIVE_KEY: ${{ secrets.QUOTE_ARCHIVE_KEY }}
+          QUOTE_VIEWER_KEY: ${{ secrets.QUOTE_VIEWER_KEY }}
+        run: |
+          python -m scripts.phase40_viewer_rekey
+      - name: Upload only re-encrypted viewer ledger (30 day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase40-ENCRYPTED-viewer-ledger
+          path: output/phase40-viewer/locked_ledger_viewer.fernet
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload safe aggregate
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase40-viewer-safe-summary
+          path: output/phase40-viewer/rekey_summary.json
+          retention-days: 30
