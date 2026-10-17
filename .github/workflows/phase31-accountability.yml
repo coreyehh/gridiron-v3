@@ -1,0 +1,55 @@
+name: GRIDIRON Phase 31 immutable weekly forecast accountability
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Week 0 auto-selects earliest future-dated unplayed matchup, or 4-18"
+        required: true
+        default: '0'
+        type: string
+  schedule:
+    - cron: '17 13 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: gridiron-phase31-snapshot-lock
+  cancel-in-progress: false
+jobs:
+  weekly-accountability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Validate immutable forecasting and existing regression protections
+        run: python -m unittest -v test_phase31_accountability test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Capture future-only immutable forecasts and grade scored weeks
+        env:
+          WEEK: ${{ github.event.inputs.week || '0' }}
+        run: |
+          python -m scripts.phase31_accountability --week "$WEEK"
+      - name: Commit only new pregame snapshot files (never overwrite existing ones)
+        run: |
+          git config user.name "gridiron-phase31[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -d snapshots/phase31 ]; then
+            git add -- snapshots/phase31/
+            if ! git diff --cached --quiet; then
+              git commit -m "Phase31: immutable pregame player forecast snapshot"
+              git push origin HEAD:main
+            else
+              echo "No new snapshot. Existing snapshots unchanged."
+            fi
+          fi
+      - name: Upload accountability audit JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase31-accountability-audit
+          path: output/phase31_accountability.json
+          retention-days: 90
+          if-no-files-found: error
