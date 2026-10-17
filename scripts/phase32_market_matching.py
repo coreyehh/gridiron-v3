@@ -148,7 +148,18 @@ def run(snapshot,request_live=False,key=None,region="us",event_id=""):
           "qualified_bets":0}
     if region not in ("us","us2","ca"):raise ValueError("Unknown region")
     if not key:raise ValueError("Missing ODDS_API_KEY")
-    events=discover(key,snapshot,event_id)
+    try:
+        events=discover(key,snapshot,event_id)
+    except RuntimeError as exc:
+        # HTTP 429 is a provider/account limit, not a model failure.
+        # Do not retry, spend further requests, or expose credentials.
+        if str(exc)=="API returned HTTP 429":
+            return {"version":VERSION,"status":"provider_rate_or_quota_limited",
+                "provider_http_status":429,"failure_stage":"event_discovery",
+                "live_event_quote_request_made":False,
+                "recommended_action":"Check Odds API account quota/reset before retrying",
+                "qualified_bets":0}
+        raise
     if not events:
         return {"version":VERSION,"status":"no_matching_future_frozen_event",
            "live_event_quote_request_made":False,
