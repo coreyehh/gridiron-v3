@@ -93,6 +93,17 @@ class Phase32Tests(unittest.TestCase):
         x=snapshot();x["created_at_utc"]="2026-10-18T18:00:00+00:00"
         x["payload_sha256"]=digest({k:v for k,v in x.items() if k!="payload_sha256"})
         with self.assertRaises(ValueError):selected_fixture(x,event())
+    def test_http_429_on_event_discovery_is_safe_and_nonretrying(self):
+        with patch("scripts.phase32_market_matching.fetch_json",
+                   side_effect=RuntimeError("API returned HTTP 429")) as caller:
+            result=run(snapshot(),True,key="synthetic-test-key")
+        self.assertEqual(caller.call_count,1)
+        self.assertEqual(result["status"],"provider_rate_or_quota_limited")
+        self.assertEqual(result["provider_http_status"],429)
+        self.assertFalse(result["live_event_quote_request_made"])
+        self.assertEqual(result["qualified_bets"],0)
+        self.assertNotIn("synthetic-test-key",str(result))
+
     def test_no_purchases_without_explicit_live(self):
         with patch("scripts.phase32_market_matching.fetch_json",
           side_effect=AssertionError("must not spend")):
