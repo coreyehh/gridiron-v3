@@ -8,6 +8,7 @@ from scripts.phase20_opportunity import normalize,team_games
 def prep():
     history,schedule=sample()
     schedule.loc[schedule.week==4,["home_score","away_score"]]=float("nan")
+    schedule.loc[schedule.week==4,"gameday"]="2026-09-10"
     roster=[{"team":team,"player_id":pid,"player_name":name}
      for team in ("LA","BUF") for pid,name in [
         ("wr"+team,"Receiver "+team),("rb"+team,"Runner "+team)]]
