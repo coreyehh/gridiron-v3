@@ -1,0 +1,39 @@
+name: GRIDIRON Phase 34 frozen pregame decision dashboard
+on:
+  workflow_dispatch:
+    inputs:
+      include_real_position_history:
+        description: "Use publicly available prior-week NFLverse positions to filter non-skill rows"
+        type: boolean
+        required: true
+        default: true
+permissions:
+  contents: read
+jobs:
+  phase34:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test decision board integrity, HTML safety and existing model safeguards
+        run: python -m unittest -v test_phase34_decision_dashboard test_phase33_probability_evidence test_phase32_market_matching test_phase31_accountability test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Generate downloadable standalone research dashboard
+        env:
+          REAL_POSITIONS: ${{ inputs.include_real_position_history }}
+        run: |
+          if [ "$REAL_POSITIONS" = "true" ]; then
+            python -m scripts.phase34_decision_dashboard --use-player-position-history
+          else
+            python -m scripts.phase34_decision_dashboard
+          fi
+      - name: Upload HTML Markdown and JSON research dashboard
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase34-frozen-matchup-decision-dashboard
+          path: output/phase34/
+          retention-days: 45
+          if-no-files-found: error
