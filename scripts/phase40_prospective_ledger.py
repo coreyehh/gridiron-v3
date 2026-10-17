@@ -50,8 +50,14 @@ def locked_ledger(snapshot,cipher,key):
         if p["fixture_id"]==fixture["id"]:
             forecast_names[name_key(p["player_name"])].append(p)
     groups=defaultdict(list);stats=Counter()
+    forecast_lock=dt(snapshot["created_at_utc"].replace("+00:00","Z"))
     for row in record["quotes"]:
         stats["archived_sides"]+=1
+        # Recheck even historical Phase39 archives produced before the
+        # upstream fix. Capturing later does not rehabilitate old quotes.
+        if dt(row["quoted_at_utc"]) < forecast_lock:
+            stats["bookmaker_updates_before_forecast_lock"]+=1
+            continue
         try:validate_offer(row,record["captured_at_utc"])
         except (ValueError,TypeError,KeyError):
             stats["invalid_sides"]+=1;continue
