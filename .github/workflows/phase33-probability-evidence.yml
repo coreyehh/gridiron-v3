@@ -1,0 +1,48 @@
+name: GRIDIRON Phase 33 probability and availability validation
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_data:
+        description: "Run public-data chronological uncertainty and calibration research"
+        type: boolean
+        default: true
+        required: true
+      first_week:
+        description: "First evaluation week"
+        type: string
+        default: '4'
+      last_week:
+        description: "Last evaluation week (unfinished weeks skipped)"
+        type: string
+        default: '18'
+permissions:
+  contents: read
+jobs:
+  phase33:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Validate prior-only probability, uncertainty and eligibility safeguards
+        run: python -m unittest -v test_phase33_probability_evidence test_phase32_market_matching test_phase31_accountability test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Check Phase33 CLI
+        run: python -m scripts.phase33_probability_evidence --help >/dev/null
+      - name: Run genuine prior-week probability evidence audit
+        if: ${{ inputs.run_real_data }}
+        env:
+          FIRST_WEEK: ${{ inputs.first_week }}
+          LAST_WEEK: ${{ inputs.last_week }}
+        run: |
+          python -m scripts.phase33_probability_evidence --first-week "$FIRST_WEEK" --last-week "$LAST_WEEK"
+      - name: Publish public-data aggregate analysis
+        if: ${{ inputs.run_real_data }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase33-probability-and-official-status-evidence
+          path: output/phase33_probability_evidence.json
+          retention-days: 30
+          if-no-files-found: error
