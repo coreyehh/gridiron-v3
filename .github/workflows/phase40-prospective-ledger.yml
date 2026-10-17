@@ -1,0 +1,65 @@
+name: GRIDIRON Phase 40 encrypted pregame FanDuel ledger and postgame grading
+on:
+  workflow_dispatch:
+    inputs:
+      archive_run_id:
+        description: "Existing Phase39 live capture run ID (default verified 39049308856)"
+        type: string
+        default: '39049308856'
+        required: true
+      grade_completed:
+        description: "OFF until event is final; fetch authentic nflverse final and player boxes"
+        type: boolean
+        default: false
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  phase40:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Regression tests for matched quotes, final-only results and ledger immutability
+        run: python -m unittest -v test_phase40_prospective_ledger test_phase39_secure_quote_evidence test_phase38_official_calibration test_phase37_gameday_integration test_phase36_evidence_chain test_phase35_fanduel_portfolio test_phase34_decision_dashboard test_phase33_probability_evidence test_phase32_market_matching test_phase31_accountability test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Retrieve existing encrypted Phase39 artifact without further sportsbook requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHIVE_RUN_ID: ${{ inputs.archive_run_id }}
+        run: |
+          if ! [[ "$ARCHIVE_RUN_ID" =~ ^[0-9]+$ ]]; then echo "Invalid run ID"; exit 1; fi
+          mkdir -p private_data/phase40
+          gh run download "$ARCHIVE_RUN_ID" --repo "${{ github.repository }}" \
+            --name phase39-ENCRYPTED-fanduel-quote-archive --dir private_data/phase40
+          test -s private_data/phase40/fanduel_archive.fernet
+      - name: Lock paired real FanDuel markets to prior pregame forecast in encrypted ledger
+        env:
+          QUOTE_ARCHIVE_KEY: ${{ secrets.QUOTE_ARCHIVE_KEY }}
+          GRADE_COMPLETED: ${{ inputs.grade_completed }}
+        run: |
+          if [ "$GRADE_COMPLETED" = "true" ]; then
+            python -m scripts.phase40_prospective_ledger \
+              --encrypted-archive private_data/phase40/fanduel_archive.fernet --grade-completed
+          else
+            python -m scripts.phase40_prospective_ledger \
+              --encrypted-archive private_data/phase40/fanduel_archive.fernet
+          fi
+      - name: Publish safe aggregate only
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase40-safe-aggregate
+          path: output/phase40/public_aggregate.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: Publish encrypted matched ledger and any completed outcome settlement
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase40-ENCRYPTED-locked-and-settled-ledgers
+          path: output/phase40/*.fernet
+          retention-days: 30
+          if-no-files-found: error
