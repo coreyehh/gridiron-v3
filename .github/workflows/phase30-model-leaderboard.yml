@@ -1,0 +1,48 @@
+name: GRIDIRON Phase 30 champion challenger leaderboard
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_data:
+        description: "Compare all player forecasting candidates using true historical NFLverse and PFR snap data"
+        type: boolean
+        default: true
+        required: true
+      first_week:
+        description: "First completed evaluation week"
+        type: string
+        default: '4'
+      last_week:
+        description: "Last completed evaluation week"
+        type: string
+        default: '18'
+permissions:
+  contents: read
+jobs:
+  model-leaderboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test Phase30 same-cohort gates and earlier safeguards
+        run: python -m unittest -v test_phase30_model_leaderboard test_phase29_route_readiness test_phase28_snap_participation test_phase27_matchup_context test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Check CLI
+        run: python -m scripts.phase30_model_leaderboard --help >/dev/null
+      - name: Run honest five-model paired comparison
+        if: ${{ inputs.run_real_data }}
+        env:
+          FIRST_WEEK: ${{ inputs.first_week }}
+          LAST_WEEK: ${{ inputs.last_week }}
+        run: |
+          python -m scripts.phase30_model_leaderboard --first-week "$FIRST_WEEK" --last-week "$LAST_WEEK"
+      - name: Publish readable model leaderboard
+        if: ${{ inputs.run_real_data }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase30-shared-cohort-model-leaderboard
+          path: output/phase30_leaderboard.json
+          retention-days: 30
+          if-no-files-found: error
