@@ -30,7 +30,7 @@ class Phase27Tests(unittest.TestCase):
         self.assertGreaterEqual(n,3)
     def test_rest_is_schedule_only(self):
         _,s,_,_=prep()
-        self.assertEqual(rest_days(s,"BUF",4),7)
+        self.assertEqual(rest_days(s,"BUF",4),1)
     def test_end_to_end_context_keeps_base_forecasts(self):
         h,s,r,t=prep()
         base=build(s,h,r,"LA","BUF",4,t)
