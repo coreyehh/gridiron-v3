@@ -1,0 +1,73 @@
+name: GRIDIRON Phase 26 integrated matchup research
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_data:
+        description: "Create player and team research board using real NFLverse data"
+        type: boolean
+        default: true
+        required: true
+      team_a:
+        description: "Optional team code; blank means next future game"
+        type: string
+        default: ''
+      team_b:
+        description: "Optional opponent team code (both or neither)"
+        type: string
+        default: ''
+      week:
+        description: "Week; 0 automatically chooses next future game"
+        type: string
+        default: '0'
+      request_real_book_odds:
+        description: "OFF by default; TRUE costs odds API credits for one game"
+        type: boolean
+        default: false
+        required: true
+      region:
+        description: "Sportsbook region if live market audit opted in"
+        type: choice
+        options: [us, us2, ca]
+        default: us
+permissions:
+  contents: read
+jobs:
+  integrated-matchup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Test Phase20–26 joins, leakage safeguards and price gates
+        run: python -m unittest -v test_phase26_matchup_board test_phase25_market_gate test_phase24_calibration test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Verify CLI
+        run: python -m scripts.phase26_matchup_board --help >/dev/null
+      - name: Build real matchup report without odds requests
+        if: ${{ inputs.run_real_data && !inputs.request_real_book_odds }}
+        env:
+          TEAM_A: ${{ inputs.team_a }}
+          TEAM_B: ${{ inputs.team_b }}
+          WEEK: ${{ inputs.week }}
+        run: |
+          python -m scripts.phase26_matchup_board --team-a "$TEAM_A" --team-b "$TEAM_B" --week "$WEEK"
+      - name: Opt-in one-event sportsbook evidence audit
+        if: ${{ inputs.run_real_data && inputs.request_real_book_odds }}
+        env:
+          TEAM_A: ${{ inputs.team_a }}
+          TEAM_B: ${{ inputs.team_b }}
+          WEEK: ${{ inputs.week }}
+          REGION: ${{ inputs.region }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          python -m scripts.phase26_matchup_board --team-a "$TEAM_A" --team-b "$TEAM_B" --week "$WEEK" --live-market-audit --region "$REGION"
+      - name: Publish readable public research forecasts
+        if: ${{ inputs.run_real_data }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase26-integrated-public-research
+          path: output/phase26_research.json
+          retention-days: 30
+          if-no-files-found: error
