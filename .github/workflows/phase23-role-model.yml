@@ -1,0 +1,50 @@
+name: GRIDIRON Phase 23 player-role challenger
+on:
+  workflow_dispatch:
+    inputs:
+      run_real_data:
+        description: "Compare Phase23 and Phase20 player projections on completed games"
+        type: boolean
+        default: true
+        required: true
+      first_week:
+        description: "First test week (minimum 4)"
+        type: string
+        default: '4'
+        required: true
+      last_week:
+        description: "Last test week (completed games only)"
+        type: string
+        default: '18'
+        required: true
+permissions:
+  contents: read
+jobs:
+  phase23:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Validate role allocation and old phase safeguards
+        run: python -m unittest -v test_phase23_role_model test_phase22_script_intervals test_phase21_walkforward test_phase20_opportunity
+      - name: Check CLI
+        run: python -m scripts.phase23_role_model --help >/dev/null
+      - name: Run completed-game head-to-head player backtest
+        if: ${{ inputs.run_real_data }}
+        env:
+          FIRST_WEEK: ${{ inputs.first_week }}
+          LAST_WEEK: ${{ inputs.last_week }}
+        run: |
+          python -m scripts.phase23_role_model --first-week "$FIRST_WEEK" --last-week "$LAST_WEEK"
+      - name: Publish summary artifact
+        if: ${{ inputs.run_real_data }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase23-player-role-evaluation
+          path: output/phase23_role_audit.json
+          retention-days: 30
+          if-no-files-found: error
