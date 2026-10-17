@@ -103,6 +103,10 @@ def encrypt_fanduel_event(snapshot,event,quotes,captured_at,key):
         count["quotes_received"]+=1
         if q.get("bookmaker")!=BOOK or q.get("event_id")!=event["id"]:
             raise ValueError("Mixed bookmaker or event")
+        # The sportsbook's own update must not predate the immutable model
+        # forecast lock. A later API capture alone does not prove this.
+        if dt(q["quoted_at_utc"]) < lock:
+            raise ValueError("Bookmaker quote timestamp predates forecast lock")
         try:validate_offer(q,captured_at)
         except (TypeError,ValueError,KeyError):
             count["unsupported_or_invalid_sides"]+=1;continue
