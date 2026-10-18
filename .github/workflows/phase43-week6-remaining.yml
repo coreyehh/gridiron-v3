@@ -1,0 +1,42 @@
+name: GRIDIRON Week 6 remaining pre-kickoff pass rush TD projections
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: gridiron-week6-remaining-prekickoff
+  cancel-in-progress: false
+jobs:
+  remaining:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Regression tests for same-day game clocks, past kickoffs and frozen forecasts
+        run: python -m unittest -v test_phase43_remaining_week6 test_phase43_multimarket_forecasts test_phase42_expanded_markets
+      - name: Retrieve complete historical sources and project only games not yet started
+        run: python -m scripts.phase43_remaining_week6
+      - name: Commit only new immutable timestamped forecasts
+        run: |
+          git config user.name "gridiron-phase43[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -d snapshots/phase43/remaining ]; then
+            git add -- snapshots/phase43/remaining/
+            if ! git diff --cached --quiet; then
+              git commit -m "Phase43: supplemental remaining Week6 kickoff-verified forecast snapshot"
+              git push origin HEAD:main
+            fi
+          fi
+      - name: Readable research projections and kickoff audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase43-week6-remaining-READABLE-projections
+          path: output/phase43-remaining/
+          retention-days: 90
+          if-no-files-found: error
