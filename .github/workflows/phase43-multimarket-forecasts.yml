@@ -1,0 +1,53 @@
+name: GRIDIRON Phase 43 passing rushing touchdown forecast research
+on:
+  workflow_dispatch:
+    inputs:
+      target_week:
+        description: "0 = next strictly future unplayed regular season week, or enter 7–18"
+        type: string
+        required: true
+        default: '0'
+permissions:
+  contents: write
+concurrency:
+  group: phase43-immutable-multimarket-lock
+  cancel-in-progress: false
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install historical data dependencies
+        run: pip install -r requirements.txt
+      - name: Regression tests including temporal leak and touchdown tails
+        run: python -m unittest -v test_phase43_multimarket_forecasts test_phase42_expanded_markets test_phase41_full_slate test_phase40_prospective_ledger test_phase39_secure_quote_evidence
+      - name: Fetch nflverse historical stats and create future-only multistat lock if eligible
+        env:
+          TARGET_WEEK: ${{ inputs.target_week }}
+        run: python -m scripts.phase43_multimarket_forecasts --week "$TARGET_WEEK"
+      - name: Preserve only newly frozen pregame Phase43 snapshots
+        run: |
+          git config user.name "gridiron-phase43[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -d snapshots/phase43 ]; then
+            git add -- snapshots/phase43/
+            if ! git diff --cached --quiet; then
+              git commit -m "Phase43: lock only historically informed future passing/rushing/TD research"
+              git push origin HEAD:main
+            else
+              echo "No new future-only snapshot is eligible yet."
+            fi
+          fi
+      - name: Public diagnostic and lock status (no bookmaker quote)
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase43-observed-box-walkforward-and-future-lock-status
+          path: output/phase43/public_summary.json
+          retention-days: 90
+          if-no-files-found: error
