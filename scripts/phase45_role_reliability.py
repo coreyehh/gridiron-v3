@@ -44,7 +44,7 @@ def historical_role(snapshot,raw):
         reasons=["OFFICIAL_ACTIVE_UNVERIFIED","STARTING_ROLE_UNVERIFIED",
            "HISTORICAL_USAGE_IS_NOT_GAME_DAY_PARTICIPATION",
            "PROJECTION_AND_TD_DISTRIBUTION_UNCALIBRATED"]
-        recent=old[(old.season==2026)&(old.week<week)] if old is not None else pd.DataFrame()
+        recent=old[(old.season==2026)&(old.week<week)] if old is not None else hist.iloc[0:0].copy()
         recent=recent.sort_values("week").tail(5)
         observed_weeks=[int(x) for x in recent.week.tolist()] if len(recent) else []
         # Count missing team-game box rows as unknown, not zero/inactive.
