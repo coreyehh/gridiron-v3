@@ -32,7 +32,10 @@ class Phase41Tests(unittest.TestCase):
         s,old=old_ledger()
         board=offline_dashboard(s,combine(s,old,[]))
         self.assertIn("Drake London",board)
-        self.assertIn("NO_CAPTURED_MARKET",board)
+        # This synthetic fixture contains ONLY one game; all its players
+        # belong to the already archived event. Expect no invented second game.
+        self.assertIn("ENCRYPTED_ARCHIVE_EXISTS",board)
+        self.assertNotIn('"quote_status":"NO_CAPTURED_MARKET"',board)
         self.assertNotIn("74.5",board)
         self.assertNotIn("-110",board)
         self.assertNotIn(KEY,board)
