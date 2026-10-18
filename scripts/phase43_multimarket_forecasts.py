@@ -31,6 +31,10 @@ MAE_METRICS=("passing_yards","pass_attempts","completions","interceptions",
              "anytime_touchdown","two_plus_touchdowns","three_plus_touchdowns")
 
 def prep(frame):
+    # nflverse stats_player_week calls this passing_interceptions in current
+    # releases; support historic/synthetic interceptions without guessing.
+    if "interceptions" not in frame.columns and "passing_interceptions" in frame.columns:
+        frame=frame.rename(columns={"passing_interceptions":"interceptions"})
     if not REQUIRED.issubset(frame.columns):
         raise ValueError("Missing nflverse player statistics: "+str(sorted(REQUIRED-set(frame.columns))))
     f=frame.copy()
