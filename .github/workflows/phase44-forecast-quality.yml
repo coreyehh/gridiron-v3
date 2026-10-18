@@ -1,0 +1,56 @@
+name: GRIDIRON Phase 44 forecast role gate and private quote reconciliation
+on:
+  workflow_dispatch:
+    inputs:
+      original_phase41_run_id:
+        description: "Original immutable encrypted 307-market capture, no API fetch"
+        type: string
+        default: '39142645209'
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Regression tests for market timing, projected role and zero-pick gate
+        run: python -m unittest -v test_phase44_forecast_quality test_phase43_remaining_week6 test_phase43_multimarket_forecasts test_phase42_expanded_markets test_phase41_full_slate test_phase40_prospective_ledger
+      - name: Retrieve encrypted historical receiving ledger — no sportsbook requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.original_phase41_run_id }}
+        run: |
+          if ! [[ "$RUN_ID" =~ ^[0-9]+$ ]]; then echo "Invalid run ID"; exit 1; fi
+          mkdir -p private_data/phase44
+          gh run download "$RUN_ID" --repo "${{ github.repository }}" \
+            --name phase41-ENCRYPTED-all-captured-fanduel-markets --dir private_data/phase44
+          test -s private_data/phase44/locked_full_slate.fernet
+      - name: Produce readable 347-player QA and encrypt any market-linked comparison
+        env:
+          QUOTE_ARCHIVE_KEY: ${{ secrets.QUOTE_ARCHIVE_KEY }}
+        run: |
+          python -m scripts.phase44_forecast_quality \
+            --encrypted-phase41 private_data/phase44/locked_full_slate.fernet
+      - name: Upload public research-only forecast QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase44-READABLE-347-forecast-quality-gate
+          path: |
+            output/phase44/public_summary.json
+            output/phase44/forecast_quality_review.csv
+          retention-days: 60
+          if-no-files-found: error
+      - name: Upload encrypted private historical timing comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase44-ENCRYPTED-private-quote-reconciliation
+          path: output/phase44/private_market_reconciliation.fernet
+          retention-days: 60
+          if-no-files-found: error
