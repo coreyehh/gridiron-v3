@@ -8,7 +8,7 @@ def sample():
     roster=[{"team":"ATL","player_id":"p1","player_name":"Synthetic QB","position":"QB"}]
     snap,_=build_remaining(schedule(),history(),roster,
        datetime(2026,10,18,16,0,tzinfo=timezone.utc),{"synthetic":"yes"})
-    return snap,history()
+    h=history();h['targets']=0\n    return snap,h
 class Phase45Tests(unittest.TestCase):
     def test_future_player_boxes_excluded_from_usage(self):
         s,h=sample()
@@ -38,7 +38,7 @@ class Phase45Tests(unittest.TestCase):
         self.assertTrue(all("MULTIPLE_HISTORICAL_QB_CANDIDATES_NO_STARTER_CONFIRMED" in z["reason_codes"] for z in a))
     def test_missing_player_box_not_zero(self):
         s,h=sample()
-        h=h[~((h.season==2026)&(h.week==5))].copy()
+        h=h[~((h.season==2026)&(h.week.isin([4,5])))].copy()
         a,_=historical_role(s,h)
         self.assertIn("NO_RECENT_PLAYER_BOX_OBSERVATION",a[0]["reason_codes"])
     def test_snapshot_tampering_is_rejected(self):
