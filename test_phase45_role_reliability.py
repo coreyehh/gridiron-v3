@@ -8,7 +8,8 @@ def sample():
     roster=[{"team":"ATL","player_id":"p1","player_name":"Synthetic QB","position":"QB"}]
     snap,_=build_remaining(schedule(),history(),roster,
        datetime(2026,10,18,16,0,tzinfo=timezone.utc),{"synthetic":"yes"})
-    h=history();h['targets']=0\n    return snap,h
+    h=history();h['targets']=0
+    return snap,h
 class Phase45Tests(unittest.TestCase):
     def test_future_player_boxes_excluded_from_usage(self):
         s,h=sample()
