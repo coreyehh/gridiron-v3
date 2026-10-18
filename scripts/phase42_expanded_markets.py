@@ -95,16 +95,22 @@ def extract(payload,captured,snapshot,event):
                     counts["bad_price_or_line"]+=1;continue
                 named=known.get(name_key(player))
                 if named is None:
-                    counts["not_unique_name_match"]+=1;continue
-                marker=(named["player_id"],metric,side,point)
+                    # Preserve authentic QB and scoring offers even when the
+                    # receiver-only frozen forecast has no player record.
+                    # Identity remains unverified and projection stays null.
+                    counts["unmatched_player_evidence_retained"]+=1
+                marker=(name_key(player),metric,side,point)
                 if marker in seen:
                     counts["duplicate_outcome"]+=1;continue
                 seen.add(marker)
                 # The frozen snapshot has NO QB, rush or TD forecasts.
                 # Even a normal source identity match does not establish GSIS provider ID.
                 rows.append({"fixture_id":fixture["id"],"event_id":event["id"],
-                  "player_id":named["player_id"],"player_name":named["player_name"],
-                  "team":named["team"],"category":category,"market":metric,
+                  "player_id":named["player_id"] if named else None,
+                  "player_name":named["player_name"] if named else player,
+                  "team":named["team"] if named else None,
+                  "frozen_name_match":bool(named),
+                  "category":category,"market":metric,
                   "side":side,"fanduel_line":point,"american_odds":int(odds),
                   "capture_utc":captured,"book_updated_utc":quote_time,
                   "kickoff_utc":event["commence_time"],
@@ -129,7 +135,7 @@ def strict_groups(rows):
             if row["side"]=="yes":td.append(row)
             else:rejected["unpaired_binary_no_side"]+=1
         else:
-            paired[(row["fixture_id"],row["player_id"],row["market"],row["fanduel_line"])].append(row)
+            paired[(row["fixture_id"],name_key(row["player_name"]),row["market"],row["fanduel_line"])].append(row)
     results=list(td)
     for pair in paired.values():
         if len(pair)!=2 or {x["side"] for x in pair}!={"over","under"}:
