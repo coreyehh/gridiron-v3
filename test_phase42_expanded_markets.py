@@ -34,17 +34,17 @@ class Phase42Tests(unittest.TestCase):
         self.assertEqual(player_of({"name":"No"},"anytime_touchdown"),(None,None))
     def test_source_quotes_and_unmodeled_projections(self):
         rows,meta=extract(sample(),CAPTURE,snapshot(),event())
-        self.assertEqual(len(rows),7)
-        self.assertEqual(meta["counts"]["accepted_outcome_sides"],7)
+        self.assertEqual(len(rows),8)
+        self.assertEqual(meta["counts"]["accepted_outcome_sides"],8)
         self.assertTrue(all(x["projection"] is None for x in rows))
         self.assertTrue(all(x["estimated_ev"] is None and not x["qualified"] for x in rows))
         self.assertTrue(all(x["player_identity_provider_verified"] is False for x in rows))
     def test_two_sided_pass_rush_and_single_td_prices(self):
         rows,_=extract(sample(),CAPTURE,snapshot(),event())
         kept,rejected=strict_groups(rows)
-        self.assertEqual(len(kept),7)
+        self.assertEqual(len(kept),8)
         self.assertEqual(rejected,{})
-        self.assertEqual(len([x for x in kept if x["category"]=="touchdowns"]),3)
+        self.assertEqual(len([x for x in kept if x["category"]=="touchdowns"]),4)
     def test_unmatched_quarterback_quote_is_preserved_without_invented_id(self):
         p=sample()
         p["bookmakers"][0]["markets"][0]["outcomes"]=[
@@ -55,7 +55,7 @@ class Phase42Tests(unittest.TestCase):
         self.assertEqual(len(qb),2)
         self.assertTrue(all(r["player_id"] is None and r["team"] is None for r in qb))
         self.assertEqual(meta["counts"]["unmatched_player_evidence_retained"],2)
-        self.assertEqual(len(strict_groups(rows)[0]),7)
+        self.assertEqual(len(strict_groups(rows)[0]),8)
     def test_mixed_bookmaker_rejected(self):
         p=sample();p["bookmakers"].append({"key":"draftkings","markets":[]})
         with self.assertRaises(ValueError):extract(p,CAPTURE,snapshot(),event())
@@ -91,6 +91,6 @@ class Phase42Tests(unittest.TestCase):
         rows,_=extract(sample(),CAPTURE,snapshot(),event())
         rows=[x for x in rows if not(x["market"]=="passing_yards" and x["side"]=="under")]
         kept,counts=strict_groups(rows)
-        self.assertEqual(len(kept),5)
+        self.assertEqual(len(kept),6)
         self.assertEqual(counts["missing_or_ambiguous_two_sided_market"],1)
 if __name__=="__main__":unittest.main()
