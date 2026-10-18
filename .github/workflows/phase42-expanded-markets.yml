@@ -1,0 +1,81 @@
+name: GRIDIRON Phase 42 passing rushing and touchdown coverage
+on:
+  workflow_dispatch:
+    inputs:
+      collect_live_extended_markets:
+        description: "OFF by default; ON requests new paid passing/rushing/TD odds for future games"
+        type: boolean
+        default: false
+        required: true
+      max_new_events:
+        description: "Maximum upcoming NFL fixtures to request (each may consume paid API credits)"
+        type: choice
+        options: ['0', '1', '3', '6', '13']
+        default: '0'
+        required: true
+      prior_phase41_run_id:
+        description: "Last successful full slate encrypted market archive"
+        type: string
+        default: '39142645209'
+        required: true
+      region:
+        type: choice
+        options: [us, us2, ca]
+        default: us
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  phase42:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Run new market shape and historical privacy regression tests
+        run: python -m unittest -v test_phase42_expanded_markets test_phase41_full_slate test_phase40_prospective_ledger test_phase39_secure_quote_evidence
+      - name: Download previous encrypted Phase41 full slate without new odds request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.prior_phase41_run_id }}
+        run: |
+          if ! [[ "$RUN_ID" =~ ^[0-9]+$ ]]; then echo "Invalid run ID"; exit 1; fi
+          mkdir -p private_data/phase42
+          gh run download "$RUN_ID" --repo "${{ github.repository }}" \
+            --name phase41-ENCRYPTED-all-captured-fanduel-markets --dir private_data/phase42
+          test -s private_data/phase42/locked_full_slate.fernet
+      - name: Expand market archive while preserving previous receiving markets
+        env:
+          QUOTE_ARCHIVE_KEY: ${{ secrets.QUOTE_ARCHIVE_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          LIVE: ${{ inputs.collect_live_extended_markets }}
+          CAP: ${{ inputs.max_new_events }}
+          REGION: ${{ inputs.region }}
+        run: |
+          if [ "$LIVE" = "true" ]; then
+            if [ "$CAP" = "0" ]; then echo "Set max_new_events to 1/3/6/13 for paid collection"; exit 1; fi
+            python -m scripts.phase42_expanded_markets \
+              --prior-archive private_data/phase42/locked_full_slate.fernet \
+              --live --event-cap "$CAP" --region "$REGION"
+          else
+            python -m scripts.phase42_expanded_markets \
+              --prior-archive private_data/phase42/locked_full_slate.fernet
+          fi
+      - name: Publish safe counts, never individual FanDuel quotes
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase42-public-market-coverage-report
+          path: output/phase42/public_summary.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload encrypted receiving plus passing rushing touchdown price evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase42-ENCRYPTED-expanded-markets
+          path: output/phase42/expanded_private_market_archive.fernet
+          retention-days: 30
+          if-no-files-found: error
