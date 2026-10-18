@@ -1,0 +1,26 @@
+name: GRIDIRON Phase 45 audited roles and competing starters
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  role-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Validate historical roles and no current-week data leakage
+        run: python -m unittest -v test_phase45_role_reliability test_phase44_forecast_quality test_phase43_remaining_week6 test_phase43_multimarket_forecasts
+      - name: Audit frozen Week6 roles using strictly prior completed player weeks
+        run: python -m scripts.phase45_role_reliability
+      - name: Upload readable player-by-player role report
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase45-READABLE-player-role-and-QB-reliability
+          path: output/phase45/
+          retention-days: 90
+          if-no-files-found: error
