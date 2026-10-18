@@ -45,6 +45,17 @@ class Phase42Tests(unittest.TestCase):
         self.assertEqual(len(kept),7)
         self.assertEqual(rejected,{})
         self.assertEqual(len([x for x in kept if x["category"]=="touchdowns"]),3)
+    def test_unmatched_quarterback_quote_is_preserved_without_invented_id(self):
+        p=sample()
+        p["bookmakers"][0]["markets"][0]["outcomes"]=[
+            {"name":"Over","description":"Synthetic Quarterback","point":245.5,"price":-110},
+            {"name":"Under","description":"Synthetic Quarterback","point":245.5,"price":-110}]
+        rows,meta=extract(p,CAPTURE,snapshot(),event())
+        qb=[r for r in rows if r["player_name"]=="Synthetic Quarterback"]
+        self.assertEqual(len(qb),2)
+        self.assertTrue(all(r["player_id"] is None and r["team"] is None for r in qb))
+        self.assertEqual(meta["counts"]["unmatched_player_evidence_retained"],2)
+        self.assertEqual(len(strict_groups(rows)[0]),7)
     def test_mixed_bookmaker_rejected(self):
         p=sample();p["bookmakers"].append({"key":"draftkings","markets":[]})
         with self.assertRaises(ValueError):extract(p,CAPTURE,snapshot(),event())
