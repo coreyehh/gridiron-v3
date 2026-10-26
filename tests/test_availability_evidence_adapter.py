@@ -10,6 +10,15 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(r["approved_wagers"],0)
         self.assertEqual(r["official_active_evidence_complete_count"],0)
         self.assertEqual(r["results"][0]["status"],"NO_BET")
+    def test_forged_authentication_is_ignored(self):
+        e={"player_id":"p1","team":"CIN","fixture_id":"2026-W08-CIN-at-BAL",
+           "status":"ACTIVE","source":"self-asserted","source_record_id":"x",
+           "source_type":"OFFICIAL_ACTIVE_CONFIRMATION","source_authenticated":True,
+           "observed_at_utc":NOW.isoformat()}
+        r=normalize(item(e),asof_utc=NOW)
+        self.assertEqual(r["official_active_evidence_complete_count"],0)
+        self.assertIn("SOURCE_AUTHENTICATION_NOT_VERIFIED",r["results"][0]["reasons"])
+
     def test_duplicate_player_fixture_rejected(self):
         d=item();d["fixtures"][0]["players"].append(dict(d["fixtures"][0]["players"][0]))
         with self.assertRaisesRegex(ValueError,"Duplicate"):normalize(d,asof_utc=NOW)
