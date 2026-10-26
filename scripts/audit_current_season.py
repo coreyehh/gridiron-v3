@@ -21,6 +21,10 @@ def validate(manifest, frame, season, min_week, max_age_days, now=None):
     if set(frame["season"].dropna().astype(int)) != {season}:
         raise ValueError("Mixed or incorrect season rows")
     latest = int(frame["week"].max())
+    if not frame["week"].between(1, 23).all():
+        raise ValueError("Invalid NFL week range")
+    if not frame["player_id"].notna().all():
+        raise ValueError("Missing player IDs")
     if latest < min_week:
         raise ValueError(f"Latest available week {latest} below required {min_week}")
     if frame.duplicated(["season", "week", "player_id"]).any():
