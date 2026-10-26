@@ -7,7 +7,7 @@ F={"id":"2026-W08-CIN-at-BAL"}
 def record(**changes):
     r={"player_id":"p1","team":"CIN","fixture_id":F["id"],
        "status":"ACTIVE","source":"official-example","source_record_id":"rec-1",
-       "source_type":"OFFICIAL_GAME_DAY_INACTIVES",
+       "source_type":"OFFICIAL_ACTIVE_CONFIRMATION",
        "observed_at_utc":(NOW-timedelta(hours=1)).isoformat()}
     r.update(changes)
     return r
@@ -16,7 +16,11 @@ class TestAvailability(unittest.TestCase):
         self.assertEqual(qualify(P,F,None,asof_utc=NOW)["status"],"NO_BET")
     def test_roster_listing_is_not_actives(self):
         x=qualify(P,F,record(source_type="ROSTER"),asof_utc=NOW)
-        self.assertIn("NOT_OFFICIAL_GAME_DAY_CONFIRMATION",x["reasons"])
+        self.assertIn("NOT_EXPLICIT_OFFICIAL_ACTIVE_CONFIRMATION",x["reasons"])
+    def test_inactives_list_is_not_positive_active_confirmation(self):
+        x=qualify(P,F,record(source_type="OFFICIAL_GAME_DAY_INACTIVES"),asof_utc=NOW)
+        self.assertIn("NOT_EXPLICIT_OFFICIAL_ACTIVE_CONFIRMATION",x["reasons"])
+
     def test_wrong_player_blocks(self):
         x=qualify(P,F,record(player_id="someone-else"),asof_utc=NOW)
         self.assertIn("PLAYER_TEAM_OR_FIXTURE_MISMATCH",x["reasons"])
