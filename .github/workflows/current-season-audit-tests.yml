@@ -32,7 +32,7 @@ jobs:
         run: python scripts/ingest.py --seasons 2026 --output output/current_2026
       - name: Audit observed 2026 season coverage
         run: python scripts/audit_current_season.py --manifest output/current_2026/manifest.json --features output/current_2026/features.csv --season 2026 --min-week 6 --max-age-days 14
-      - name: Upload audit artifacts
+      - name: Audit source player-to-team identity\n        run: python scripts/audit_player_identity.py --source output/current_2026/stats_player_week_2026.parquet --season 2026 --output output/current_2026/identity_audit.json\n      - name: Upload audit artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
