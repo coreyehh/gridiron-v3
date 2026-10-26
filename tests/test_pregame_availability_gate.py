@@ -7,7 +7,7 @@ F={"id":"2026-W08-CIN-at-BAL"}
 def record(**changes):
     r={"player_id":"p1","team":"CIN","fixture_id":F["id"],
        "status":"ACTIVE","source":"official-example","source_record_id":"rec-1",
-       "source_type":"OFFICIAL_ACTIVE_CONFIRMATION",
+       "source_type":"OFFICIAL_ACTIVE_CONFIRMATION","source_authenticated":True,
        "observed_at_utc":(NOW-timedelta(hours=1)).isoformat()}
     r.update(changes)
     return r
@@ -20,6 +20,11 @@ class TestAvailability(unittest.TestCase):
     def test_inactives_list_is_not_positive_active_confirmation(self):
         x=qualify(P,F,record(source_type="OFFICIAL_GAME_DAY_INACTIVES"),asof_utc=NOW)
         self.assertIn("NOT_EXPLICIT_OFFICIAL_ACTIVE_CONFIRMATION",x["reasons"])
+
+    def test_unverified_source_label_cannot_certify_active(self):
+        x=qualify(P,F,record(source_authenticated=False),asof_utc=NOW)
+        self.assertIn("SOURCE_AUTHENTICATION_NOT_VERIFIED",x["reasons"])
+        self.assertFalse(x["official_active_evidence_complete"])
 
     def test_wrong_player_blocks(self):
         x=qualify(P,F,record(player_id="someone-else"),asof_utc=NOW)
