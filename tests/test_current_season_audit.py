@@ -16,6 +16,8 @@ def fixture(week=7, rows=2, age=0):
         "seasons": [{"season": 2026, "rows": rows, "status": "validated",
                      "source": "https://example.test/stats.parquet"}],
         "updated_at_utc": (NOW - timedelta(days=age)).isoformat(),
+        "feature_rows": rows,
+        "unidentified_player_week_rows_quarantined": 0,
     }
     return manifest, frame
 
@@ -48,6 +50,13 @@ class CurrentSeasonAuditTests(unittest.TestCase):
         f.loc[1, "player_id"] = f.loc[0, "player_id"]
         with self.assertRaises(ValueError):
             validate(m, f, 2026, 6, 14, now=NOW)
+
+    def test_accept_documented_quarantine(self):
+        m, f = fixture()
+        m["seasons"][0]["rows"] = 3
+        m["unidentified_player_week_rows_quarantined"] = 1
+        result = validate(m, f, 2026, 6, 14, now=NOW)
+        self.assertEqual(result["quarantined_unidentified_rows"], 1)
 
     def test_reject_row_count_mismatch(self):
         m, f = fixture()
