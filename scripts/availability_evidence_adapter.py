@@ -8,11 +8,13 @@ import argparse,json
 from datetime import datetime,timezone
 from pathlib import Path
 from scripts.pregame_availability_gate import qualify
+from scripts.availability_source_verifier import DenyAllVerifier,verify_attestation
 
-def normalize(payload, *, asof_utc):
+def normalize(payload, *, asof_utc, verifier=None):
     if asof_utc.tzinfo is None:raise ValueError("UTC-aware asof required")
     if not isinstance(payload,dict) or not isinstance(payload.get("fixtures"),list):
         raise ValueError("Expected fixtures array")
+    if verifier is None:verifier=DenyAllVerifier()
     results=[]
     seen=set()
     for fixture in payload["fixtures"]:
@@ -29,7 +31,8 @@ def normalize(payload, *, asof_utc):
             # Until a trusted source verifier is integrated, every
             # external record is treated as unauthenticated.
             evidence=dict(supplied) if isinstance(supplied,dict) else supplied
-            if isinstance(evidence,dict):evidence["source_authenticated"]=False
+            if isinstance(evidence,dict):
+                evidence["source_authenticated"]=verify_attestation(verifier,evidence,asof_utc)
             result=qualify(player,fixture,evidence,asof_utc=asof_utc)
             results.append(result)
     return {"status":"AVAILABILITY_GATE_EVALUATED_NO_BETS_APPROVED",
