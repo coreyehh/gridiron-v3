@@ -19,3 +19,24 @@ jobs:
           python-version: '3.11'
       - run: pip install -r requirements.txt
       - run: python -m unittest discover -s tests -p 'test_current_season_audit.py' -v
+  integration-2026:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Download 2026 NFL player-week data
+        run: python scripts/ingest.py --seasons 2026 --output output/current_2026
+      - name: Audit observed 2026 season coverage
+        run: python scripts/audit_current_season.py --manifest output/current_2026/manifest.json --features output/current_2026/features.csv --season 2026 --min-week 6 --max-age-days 14
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-season-2026-pr-validation
+          path: output/current_2026/
+          retention-days: 14
+          if-no-files-found: warn
