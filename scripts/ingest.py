@@ -69,7 +69,15 @@ def main():
         frame, record = download(year, folder)
         frames.append(frame)
         records.append(record)
-    features = prior_game_features(pd.concat(frames, ignore_index=True))
+    raw = pd.concat(frames, ignore_index=True)
+    unidentified = raw["player_id"].isna() | raw["player_id"].astype("string").str.strip().fillna("").eq("")
+    excluded = int(unidentified.sum())
+    identified = raw.loc[~unidentified].copy()
+    if identified.empty:
+        raise ValueError("No identified player-week records after quarantine")
+    if identified.duplicated(["season", "week", "player_id"]).any():
+        raise ValueError("Duplicate identified player-week rows")
+    features = prior_game_features(identified)
     features.to_csv(folder / "features.csv", index=False)
     manifest = {
         "status": "historical_data_validated",
@@ -77,6 +85,8 @@ def main():
         "seasons": records,
         "player_week_rows": int(sum(r["rows"] for r in records)),
         "feature_rows": int(len(features)),
+        "unidentified_player_week_rows_quarantined": excluded,
+        "player_identity_verified_externally": False,
         "verified_prop_prices": False, "calibrated_probabilities": False,
         "backtested_roi": False,
     }
