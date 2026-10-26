@@ -1,0 +1,29 @@
+name: GRIDIRON 2026 current-season ingestion audit
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '45 12 * * 2,5'
+permissions:
+  contents: read
+jobs:
+  audit-current-season:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Download and validate 2026 player-week dataset
+        run: python scripts/ingest.py --seasons 2026 --output output/current_2026
+      - name: Check season coverage and fresh completed games
+        run: python scripts/audit_current_season.py --manifest output/current_2026/manifest.json --features output/current_2026/features.csv --season 2026 --min-week 6 --max-age-days 14
+      - name: Publish audit artifact for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-2026-ingestion-audit
+          path: output/current_2026/
+          retention-days: 14
+          if-no-files-found: warn
