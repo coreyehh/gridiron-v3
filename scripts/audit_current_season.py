@@ -29,8 +29,11 @@ def validate(manifest, frame, season, min_week, max_age_days, now=None):
         raise ValueError(f"Latest available week {latest} below required {min_week}")
     if frame.duplicated(["season", "week", "player_id"]).any():
         raise ValueError("Duplicate player-week rows")
-    if len(frame) != int(seasons[0]["rows"]):
-        raise ValueError("Manifest and feature row counts differ")
+    quarantined = int(manifest.get("unidentified_player_week_rows_quarantined", 0))
+    if quarantined < 0 or len(frame) + quarantined != int(seasons[0]["rows"]):
+        raise ValueError("Manifest raw/identified/quarantined row counts differ")
+    if len(frame) != int(manifest.get("feature_rows", -1)):
+        raise ValueError("Manifest feature count differs from audited rows")
     ts = datetime.fromisoformat(manifest["updated_at_utc"].replace("Z", "+00:00"))
     if ts.tzinfo is None or ts > now + timedelta(minutes=5):
         raise ValueError("Invalid manifest timestamp")
@@ -38,7 +41,8 @@ def validate(manifest, frame, season, min_week, max_age_days, now=None):
         raise ValueError("Ingestion manifest is stale")
     return {"status": "VALIDATED_COMPLETED_PLAYER_WEEKS_ONLY",
             "season": season, "latest_observed_week": latest,
-            "rows": len(frame), "source": seasons[0]["source"],
+            "rows": len(frame), "quarantined_unidentified_rows": quarantined,
+            "source": seasons[0]["source"],
             "manifest_updated_at_utc": manifest["updated_at_utc"],
             "rosters_verified": False, "injuries_verified": False,
             "live_odds_verified": False, "model_approved_wagers": False}
