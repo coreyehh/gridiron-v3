@@ -24,7 +24,13 @@ def normalize(payload, *, asof_utc):
             key=(fixture["id"],str(player["player_id"]))
             if key in seen:raise ValueError("Duplicate player-fixture availability")
             seen.add(key)
-            result=qualify(player,fixture,player.get("evidence"),asof_utc=asof_utc)
+            supplied=player.get("evidence")
+            # Never trust a caller-supplied authentication boolean.
+            # Until a trusted source verifier is integrated, every
+            # external record is treated as unauthenticated.
+            evidence=dict(supplied) if isinstance(supplied,dict) else supplied
+            if isinstance(evidence,dict):evidence["source_authenticated"]=False
+            result=qualify(player,fixture,evidence,asof_utc=asof_utc)
             results.append(result)
     return {"status":"AVAILABILITY_GATE_EVALUATED_NO_BETS_APPROVED",
             "asof_utc":asof_utc.astimezone(timezone.utc).isoformat(),
