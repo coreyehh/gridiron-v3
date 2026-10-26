@@ -36,6 +36,8 @@ def qualify(player, fixture, evidence, *, asof_utc):
             reasons.append("NOT_OFFICIALLY_CONFIRMED_ACTIVE")
         if evidence.get("source_type")!="OFFICIAL_ACTIVE_CONFIRMATION":
             reasons.append("NOT_EXPLICIT_OFFICIAL_ACTIVE_CONFIRMATION")
+        if evidence.get("source_authenticated") is not True:
+            reasons.append("SOURCE_AUTHENTICATION_NOT_VERIFIED")
     # A valid ACTIVE entry is still insufficient without a separately
     # certified starter/role and calibrated probability/price gate.
     if not reasons:
