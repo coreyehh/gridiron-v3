@@ -122,7 +122,10 @@ def build(schedule,raw,roster,week,asof,hashes):
         for club in (g.away_team,g.home_team):
             names=sorted((pid,name) for (team,pid),name in roster_names.items() if team==club)
             for pid,name in names:
-                observed=prior[(prior.player_id.astype(str)==pid)&(prior.team_code==club)]
+                # Forecast a player's history across team changes. Current roster
+                # establishes the fixture team; historical club must not erase
+                # legitimate prior production after a trade or signing.
+                observed=prior[prior.player_id.astype(str)==pid]
                 if observed.empty:continue
                 position=roster_position[(club,pid)] or str(observed.iloc[-1].position)
                 if position not in ("QB","RB","WR","TE"):continue
