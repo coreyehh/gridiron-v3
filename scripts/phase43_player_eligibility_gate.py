@@ -8,6 +8,8 @@ from scripts.phase43_snapshot_quality_audit import audit
 def evaluate(snapshot, *, availability_verifier=None):
     quality=audit(snapshot)
     by_fixture={}
+    if len({(r["fixture_id"],r["player_id"]) for r in snapshot["forecasts"]})!=len(snapshot["forecasts"]):
+        raise ValueError("Duplicate player-fixture identity")
     for r in snapshot["forecasts"]:
         fixture=r["fixture_id"]
         key=(fixture,r["player_id"])
