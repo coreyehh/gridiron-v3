@@ -21,9 +21,10 @@ def historical_thresholds(raw, player_id, *, season, week, thresholds=None, min_
     if set(thresholds)-set(MARKETS):raise ValueError("Unsupported market")
     out={}
     for market,lines in thresholds.items():
-        values=pd.to_numeric(prior[market],errors="coerce").dropna()
-        if not all(math.isfinite(float(x)) and float(x)>=0 for x in values):
-            raise ValueError("Nonfinite or negative historical observation")
+        numeric=pd.to_numeric(prior[market],errors="coerce")
+        invalid=numeric.notna() & (~numeric.map(lambda x: math.isfinite(float(x)) and float(x)>=0 if pd.notna(x) else True))
+        values=numeric.loc[numeric.notna() & ~invalid]
+        quarantined=int(invalid.sum())
         count=len(values)
         if len(set(float(x) for x in lines))!=len(lines):raise ValueError("Duplicate threshold")
         probabilities={}
@@ -35,6 +36,8 @@ def historical_thresholds(raw, player_id, *, season, week, thresholds=None, min_
                  "observed_games":count,
                  "empirical_hit_rate":round(hits/count,6) if count else None}
         out[market]={"sample_size":count,"sufficient_for_descriptive_review":count>=min_samples,
+            "invalid_historical_rows_quarantined":quarantined,
+            "missing_market_values_excluded":int(numeric.isna().sum()),
             "thresholds":probabilities}
     return {"player_id":str(player_id),"target_season":season,"target_week":week,
         "status":"RESEARCH_ONLY_UNCALIBRATED_HISTORICAL_FREQUENCIES",
