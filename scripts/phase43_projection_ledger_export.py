@@ -35,7 +35,11 @@ def export(snapshot):
                 "snapshot_sha256":snapshot["payload_sha256"],
                 "line_specific_probability":None,
                 "bookmaker_price":None,
-                "approved_wager":False})
+                "approved_wager":False,
+                "active_verified":player.get("active_verified") is True,
+                "role_verified":player.get("role_verified") is True,
+                "eligible_for_wager_approval":False,
+                "eligibility_status":"RESEARCH_ONLY_UNVERIFIED_OR_UNCALIBRATED"})
     return {"source":"phase43_original_locked_snapshot",
             "snapshot_sha256":snapshot["payload_sha256"],
             "projection_count":len(rows),"projections":rows,
