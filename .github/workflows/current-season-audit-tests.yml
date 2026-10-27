@@ -23,6 +23,8 @@ on:
       - 'tests/test_market_accountability_report.py'
       - 'scripts/phase43_multimarket_forecasts.py'
       - 'tests/test_phase43_identity_quarantine.py'
+      - 'scripts/phase43_projection_ledger_export.py'
+      - 'tests/test_phase43_projection_ledger_export.py'
       - 'tests/test_current_season_audit.py'
       - '.github/workflows/current-season-audit-tests.yml'
   workflow_dispatch:
@@ -38,7 +40,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - run: python -m unittest discover -s tests -p 'test_*audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_availability_gate.py' -v && python -m unittest discover -s tests -p 'test_availability_evidence_adapter.py' -v && python -m unittest discover -s tests -p 'test_availability_source_verifier.py' -v && python -m unittest discover -s tests -p 'test_wager_approval_gate.py' -v && python -m unittest discover -s tests -p 'test_market_price_math.py' -v && python -m unittest discover -s tests -p 'test_probability_calibration_audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_prediction_ledger.py' -v && python -m unittest discover -s tests -p 'test_market_accountability_report.py' -v && python -m unittest discover -s tests -p 'test_phase43_identity_quarantine.py' -v
+      - run: python -m unittest discover -s tests -p 'test_*audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_availability_gate.py' -v && python -m unittest discover -s tests -p 'test_availability_evidence_adapter.py' -v && python -m unittest discover -s tests -p 'test_availability_source_verifier.py' -v && python -m unittest discover -s tests -p 'test_wager_approval_gate.py' -v && python -m unittest discover -s tests -p 'test_market_price_math.py' -v && python -m unittest discover -s tests -p 'test_probability_calibration_audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_prediction_ledger.py' -v && python -m unittest discover -s tests -p 'test_market_accountability_report.py' -v && python -m unittest discover -s tests -p 'test_phase43_identity_quarantine.py' -v && python -m unittest discover -s tests -p 'test_phase43_projection_ledger_export.py' -v
   integration-2026:
     runs-on: ubuntu-latest
     timeout-minutes: 25
