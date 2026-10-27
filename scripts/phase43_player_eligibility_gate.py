@@ -4,9 +4,12 @@ Historical stat rows and a roster listing cannot certify game-day activation.
 Only a trusted, fixture-scoped evidence adapter may provide that assertion.
 """
 from scripts.phase43_snapshot_quality_audit import audit
+from scripts.availability_source_verifier import verify_attestation
+from datetime import datetime,timezone
 
 def evaluate(snapshot, *, availability_verifier=None):
     quality=audit(snapshot)
+    lock=datetime.fromisoformat(snapshot["created_at_utc"].replace("Z","+00:00"))
     by_fixture={}
     if len({(r["fixture_id"],r["player_id"]) for r in snapshot["forecasts"]})!=len(snapshot["forecasts"]):
         raise ValueError("Duplicate player-fixture identity")
@@ -16,9 +19,11 @@ def evaluate(snapshot, *, availability_verifier=None):
         eligible=False
         reason="NO_TRUSTED_GAME_DAY_ACTIVE_EVIDENCE"
         if availability_verifier is not None:
-            evidence=availability_verifier.verify(fixture_id=fixture,
+            evidence=availability_verifier.get_evidence(fixture_id=fixture,
                   player_id=r["player_id"],team=r["team"])
-            if isinstance(evidence,dict) and evidence.get("authenticated") is True and evidence.get("active") is True and evidence.get("team")==r["team"] and evidence.get("fixture_id")==fixture and evidence.get("player_id")==r["player_id"]:
+            if (isinstance(evidence,dict) and evidence.get("status")=="ACTIVE"
+                and evidence.get("source_type")=="OFFICIAL_ACTIVE_CONFIRMATION"
+                and verify_attestation(availability_verifier,evidence,lock)):
                 eligible=True
                 reason="ACTIVE_IDENTITY_CONFIRMED_ROLE_STILL_UNVERIFIED"
         by_fixture[key]={"eligible_for_player_baseline_review":eligible,
