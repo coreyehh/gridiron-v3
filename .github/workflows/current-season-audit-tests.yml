@@ -36,6 +36,8 @@ on:
       - 'tests/test_nflverse_result_verifier.py'
       - 'scripts/pinned_fixture_mapper.py'
       - 'tests/test_pinned_fixture_mapper.py'
+      - 'scripts/reconcile_phase43_observed_boxes.py'
+      - 'tests/test_reconcile_phase43_observed_boxes.py'
       - 'tests/test_current_season_audit.py'
       - '.github/workflows/current-season-audit-tests.yml'
   workflow_dispatch:
@@ -51,7 +53,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - run: python -m unittest discover -s tests -p 'test_*audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_availability_gate.py' -v && python -m unittest discover -s tests -p 'test_availability_evidence_adapter.py' -v && python -m unittest discover -s tests -p 'test_availability_source_verifier.py' -v && python -m unittest discover -s tests -p 'test_wager_approval_gate.py' -v && python -m unittest discover -s tests -p 'test_market_price_math.py' -v && python -m unittest discover -s tests -p 'test_probability_calibration_audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_prediction_ledger.py' -v && python -m unittest discover -s tests -p 'test_market_accountability_report.py' -v && python -m unittest discover -s tests -p 'test_phase43_identity_quarantine.py' -v && python -m unittest discover -s tests -p 'test_phase43_projection_ledger_export.py' -v && python -m unittest discover -s tests -p 'test_phase43_projection_error_report.py' -v && python -m unittest discover -s tests -p 'test_archive_phase43_snapshot.py' -v && python -m unittest discover -s tests -p 'test_result_source_verifier.py' -v && python -m unittest discover -s tests -p 'test_nflverse_result_verifier.py' -v && python -m unittest discover -s tests -p 'test_pinned_fixture_mapper.py' -v
+      - run: python -m unittest discover -s tests -p 'test_*audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_availability_gate.py' -v && python -m unittest discover -s tests -p 'test_availability_evidence_adapter.py' -v && python -m unittest discover -s tests -p 'test_availability_source_verifier.py' -v && python -m unittest discover -s tests -p 'test_wager_approval_gate.py' -v && python -m unittest discover -s tests -p 'test_market_price_math.py' -v && python -m unittest discover -s tests -p 'test_probability_calibration_audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_prediction_ledger.py' -v && python -m unittest discover -s tests -p 'test_market_accountability_report.py' -v && python -m unittest discover -s tests -p 'test_phase43_identity_quarantine.py' -v && python -m unittest discover -s tests -p 'test_phase43_projection_ledger_export.py' -v && python -m unittest discover -s tests -p 'test_phase43_projection_error_report.py' -v && python -m unittest discover -s tests -p 'test_archive_phase43_snapshot.py' -v && python -m unittest discover -s tests -p 'test_result_source_verifier.py' -v && python -m unittest discover -s tests -p 'test_nflverse_result_verifier.py' -v && python -m unittest discover -s tests -p 'test_pinned_fixture_mapper.py' -v && python -m unittest discover -s tests -p 'test_reconcile_phase43_observed_boxes.py' -v
   integration-2026:
     runs-on: ubuntu-latest
     timeout-minutes: 25
