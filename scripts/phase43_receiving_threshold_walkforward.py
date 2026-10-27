@@ -26,7 +26,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
         for market,detail in prediction["markets"].items():
             if not detail["sufficient_for_descriptive_review"]:continue
             observed=float(getattr(actual,market))
-            if not math.isfinite(observed) or observed<0:continue
+            if not math.isfinite(observed) or (market=="receptions" and observed<0):continue
             for line,record in detail["thresholds"].items():
                 p=record["empirical_hit_rate"]
                 if p is None:continue
