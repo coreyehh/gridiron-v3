@@ -1,0 +1,46 @@
+name: GRIDIRON Phase43 pregame snapshot evidence archive
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 12 * * 3,6'
+permissions:
+  contents: read
+jobs:
+  archive-existing-locks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install forecast validation dependencies
+        run: pip install -r requirements.txt
+      - name: Archive only already-committed, strictly future snapshots
+        shell: bash
+        run: |
+          mkdir -p output/phase43_archive
+          found=0
+          shopt -s nullglob
+          for snapshot in snapshots/phase43/2026-week-*.json; do
+            stem="$(basename "$snapshot" .json)"
+            if python -m scripts.archive_phase43_snapshot \
+              --snapshot "$snapshot" \
+              --archive "output/phase43_archive/${stem}.json" \
+              --manifest "output/phase43_archive/${stem}.manifest.json"; then
+              found=$((found+1))
+            else
+              echo "::notice::Snapshot $stem is not eligible for future-only archive."
+            fi
+          done
+          echo "eligible_snapshots=$found" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$found" -eq 0 ]; then
+            echo "No eligible future-only snapshot found. Nothing is being represented as prospective evidence." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain archived snapshots and manifests with Actions run timestamp
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase43-future-only-snapshot-evidence
+          path: output/phase43_archive/
+          retention-days: 90
+          if-no-files-found: warn
