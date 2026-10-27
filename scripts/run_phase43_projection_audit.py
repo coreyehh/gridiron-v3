@@ -7,13 +7,15 @@ import argparse,json
 from pathlib import Path
 from scripts.phase43_projection_ledger_export import export
 from scripts.phase43_projection_error_report import evaluate
+from scripts.result_source_verifier import verify_results
 
-def run(snapshot_path,observations_path,*,min_sample=10):
+def run(snapshot_path,observations_path,*,min_sample=10,verifier=None):
     snapshot=json.loads(Path(snapshot_path).read_text())
     original=export(snapshot)
     observations=json.loads(Path(observations_path).read_text())
     if not isinstance(observations,list):raise ValueError("Expected observations array")
-    result=evaluate(original,observations,min_sample=min_sample)
+    verified=verify_results(observations,verifier=verifier)
+    result=evaluate(original,verified,min_sample=min_sample)
     result["source_snapshot_path"]=str(snapshot_path)
     result["source_observations_path"]=str(observations_path)
     result["snapshot_digest"]=original["snapshot_sha256"]
