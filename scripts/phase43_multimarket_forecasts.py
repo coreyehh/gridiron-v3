@@ -38,6 +38,10 @@ def prep(frame):
     if not REQUIRED.issubset(frame.columns):
         raise ValueError("Missing nflverse player statistics: "+str(sorted(REQUIRED-set(frame.columns))))
     f=frame.copy()
+    # Quarantine unidentified player-week rows before any player grouping.
+    identified=f["player_id"].notna() & f["player_id"].astype("string").str.strip().fillna("").ne("")
+    f=f.loc[identified].copy()
+    if f.empty:raise ValueError("No identified player-week records")
     if "season_type" in f:f=f[f.season_type=="REG"].copy()
     col="recent_team" if "recent_team" in f else "team"
     if col not in f:raise ValueError("Team code missing")
