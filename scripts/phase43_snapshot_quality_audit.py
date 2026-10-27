@@ -25,6 +25,11 @@ def audit(snapshot):
         if r.get("role_verified") is not True:
             issues.append({"type":"ROLE_UNVERIFIED","fixture_id":r["fixture_id"],
                            "player_id":r["player_id"]})
+        if r.get("historical_team_transition") is True:
+            issues.append({"type":"HISTORICAL_TEAM_TRANSITION",
+                           "fixture_id":r["fixture_id"],"player_id":r["player_id"],
+                           "last_observed_team":r.get("last_observed_team"),
+                           "forecast_team":r["team"]})
         last=(r.get("last_observed_season"),r.get("last_observed_week"))
         weeks[str(last)]+=1
         try:
