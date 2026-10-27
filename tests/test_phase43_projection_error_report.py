@@ -1,12 +1,12 @@
 import unittest
 from scripts.phase43_projection_error_report import evaluate
 def export():
-    return {"source":"phase43_original_locked_snapshot",
+    return {"source":"phase43_original_locked_snapshot","snapshot_sha256":"test-digest",
             "projections":[{"fixture_id":"g","player_id":"p","market":"receiving_yards",
-                "point_projection":60.0,"line_specific_probability":None,
+                "point_projection":60.0,"forecast_at_utc":"2026-10-01T12:00:00Z","snapshot_sha256":"test-digest","line_specific_probability":None,
                 "approved_wager":False},
                 {"fixture_id":"g","player_id":"q","market":"receiving_yards",
-                "point_projection":40.0,"line_specific_probability":None,
+                "point_projection":40.0,"forecast_at_utc":"2026-10-01T12:00:00Z","snapshot_sha256":"test-digest","line_specific_probability":None,
                 "approved_wager":False}]}
 def observed():
     return [{"fixture_id":"g","player_id":"p","market":"receiving_yards",
@@ -28,6 +28,12 @@ class Tests(unittest.TestCase):
         x=evaluate(export(),[],min_sample=1)
         self.assertEqual(x["markets"],{})
         self.assertEqual(x["unmatched_projection_count"],2)
+    def test_missing_snapshot_lock_rejected(self):
+        e=export();del e["projections"][0]["snapshot_sha256"]
+        with self.assertRaisesRegex(ValueError,"lock metadata"):evaluate(e,observed())
+    def test_mismatched_digest_rejected(self):
+        e=export();e["projections"][0]["snapshot_sha256"]="different"
+        with self.assertRaisesRegex(ValueError,"digest mismatch"):evaluate(e,observed())
     def test_wager_claim_rejected(self):
         e=export();e["projections"][0]["approved_wager"]=True
         with self.assertRaisesRegex(ValueError,"wager claim"):evaluate(e,observed())
