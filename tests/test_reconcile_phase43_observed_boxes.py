@@ -36,6 +36,14 @@ class Tests(unittest.TestCase):
         self.assertEqual(x["markets"]["receiving_yards"]["mae"],10)
         self.assertEqual(x["unmatched_projection_count"],1)
         self.assertFalse(x["external_source_authenticity_certified"])
+    def test_missing_stat_never_imputed_zero(self):
+        self.patcher.stop()
+        with patch("scripts.nflverse_result_verifier.pd.read_parquet",
+                   return_value=pd.DataFrame([{"season":2026,"week":7,
+                     "player_id":"p1","receiving_yards":float("nan")}])):
+            x=self.run_audit()
+        self.assertEqual(x["matched_observations"],0)
+        self.assertEqual(x["unmatched_projection_count"],2)
     def test_wrong_stats_hash_rejected(self):
         with self.assertRaisesRegex(ValueError,"hash mismatch"):
             reconcile(self.snapshot,schedule_path=self.schedule,
