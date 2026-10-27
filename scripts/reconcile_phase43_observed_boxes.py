@@ -4,6 +4,7 @@ Only source-backed observed player rows are scored. Missing rows are not zeros.
 The generated evidence is tied to the caller's pinned schedule and stats hashes.
 """
 import argparse,json
+import pandas as pd
 from pathlib import Path
 from scripts.phase43_projection_ledger_export import export
 from scripts.phase43_projection_error_report import evaluate
@@ -36,6 +37,7 @@ def reconcile(snapshot, *, schedule_path,schedule_sha256,stats_path,stats_sha256
         try:
             actual=float(value)
         except (ValueError,TypeError):continue
+        if not pd.notna(actual) or actual<0:continue
         key=(fixture,pid,market)
         if key in seen:raise ValueError("Duplicate projection observation key")
         seen.add(key)
