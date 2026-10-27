@@ -85,6 +85,11 @@ jobs:
         run: python scripts/audit_current_season.py --manifest output/current_2026/manifest.json --features output/current_2026/features.csv --season 2026 --min-week 6 --max-age-days 14
       - name: Audit source player-to-team identity
         run: python scripts/audit_player_identity.py --source output/current_2026/stats_player_week_2026.parquet --season 2026 --output output/current_2026/identity_audit.json
+      - name: Execute real 2026 receiving threshold evaluation
+        run: |
+          python -m scripts.run_phase43_receiving_evaluation \
+            --first-week 4 --last-week 7 --min-samples 8 \
+            --output output/current_2026/receiving_threshold_evaluation.json
       - name: Upload audit artifacts
         if: always()
         uses: actions/upload-artifact@v4
