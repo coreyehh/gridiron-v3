@@ -38,11 +38,18 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
                     "empirical_rate":p,"outcome":outcome,
                     "brier":(p-outcome)**2})
     grouped={}
+    # Promotion remains blocked even if a small historical slice beats baseline.
+    # Paired comparisons use the exact same observed player-games.
     for market in thresholds:
         for line in thresholds[market]:
             group=[r for r in rows if r["market"]==market and r["threshold"]==float(line)]
             grouped[f"{market}:{line}"]={"scored_observations":len(group),
               "brier_score":round(sum(r["brier"] for r in group)/len(group),6) if group else None,
+              "paired_brier_improvement":round(
+                sum(r["baseline_brier"]-r["brier"] for r in group
+                    if r["baseline_brier"] is not None)/
+                len([r for r in group if r["baseline_brier"] is not None]),6)
+                if any(r["baseline_brier"] is not None for r in group) else None,
               "baseline_brier_score":round(
                 sum(r["baseline_brier"] for r in group if r["baseline_brier"] is not None)/
                 len([r for r in group if r["baseline_brier"] is not None]),6)
@@ -52,4 +59,6 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
     return {"status":"HISTORICAL_WALK_FORWARD_DIAGNOSTIC_NOT_PROSPECTIVE",
       "first_week":first_week,"last_week":last_week,"min_samples":min_samples,
       "missing_game_rows_not_imputed":True,"calibrated":False,"approved_wagers":0,
+      "promotion_decision":"NOT_ELIGIBLE_FOR_BETTING_USE",
+      "comparison_note":"Paired Brier improvement positive means lower error than prior-week league baseline.",
       "metrics":grouped,"scored_records":len(rows)}
