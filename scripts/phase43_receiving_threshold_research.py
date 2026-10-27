@@ -22,7 +22,7 @@ def historical_thresholds(raw, player_id, *, season, week, thresholds=None, min_
     out={}
     for market,lines in thresholds.items():
         numeric=pd.to_numeric(prior[market],errors="coerce")
-        invalid=numeric.notna() & (~numeric.map(lambda x: math.isfinite(float(x)) and float(x)>=0 if pd.notna(x) else True))
+        invalid=numeric.notna() & (~numeric.map(lambda x: math.isfinite(float(x)) and (market=="receiving_yards" or float(x)>=0) if pd.notna(x) else True))
         values=numeric.loc[numeric.notna() & ~invalid]
         quarantined=int(invalid.sum())
         count=len(values)
