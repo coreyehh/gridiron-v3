@@ -19,6 +19,7 @@ class Tests(unittest.TestCase):
                 thresholds={"receptions":(5,),"receiving_yards":(70,)})
         self.assertEqual(result["scored_records"],8)
         self.assertGreaterEqual(result["metrics"]["receptions:5"]["brier_score"],0)
+        self.assertIsNotNone(result["metrics"]["receptions:5"]["baseline_brier_score"])
         self.assertFalse(result["calibrated"])
         self.assertEqual(result["approved_wagers"],0)
     def test_no_future_data(self):
