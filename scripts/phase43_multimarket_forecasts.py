@@ -213,9 +213,12 @@ def main():
      (schedule.gameday.astype(str)>now.date().isoformat())&
      (schedule.home_score.isna())&(schedule.away_score.isna())]
     week=a.week or (int(future.sort_values("gameday").iloc[0].week) if len(future) else 0)
+    from scripts.phase43_player_eligibility_gate import evaluate as eligibility_audit
     result={"version":VERSION,"target_week":week,
      "diagnostic":diagnostic,"snapshot_status":"NOT_CREATED","snapshot_path":None,
-     "sportsbook_requests":0,"qualified_bets":0}
+     "sportsbook_requests":0,"qualified_bets":0,
+     "eligibility_status":"NO_SNAPSHOT","verified_active_count":0,
+     "unverified_count":0}
     if week:
         lockdir=Path(a.lock_dir);lockdir.mkdir(parents=True,exist_ok=True)
         path=lockdir/f"2026-week-{week:02d}.json"
@@ -223,6 +226,10 @@ def main():
             existing=json.loads(path.read_text());verify(existing)
             result["snapshot_status"]="ALREADY_LOCKED_UNCHANGED"
             result["snapshot_path"]=str(path)
+            evidence=eligibility_audit(existing)
+            result["eligibility_status"]=evidence["status"]
+            result["verified_active_count"]=evidence["verified_active_count"]
+            result["unverified_count"]=evidence["unverified_count"]
         else:
             try:snap=build(schedule,raw,roster,week,now,hashes)
             except ValueError:
@@ -233,6 +240,10 @@ def main():
                 result["snapshot_status"]="FROZEN_FUTURE_PROJECTIONS"
                 result["snapshot_path"]=str(path)
                 result["new_forecasts"]=len(snap["forecasts"])
+                evidence=eligibility_audit(snap)
+                result["eligibility_status"]=evidence["status"]
+                result["verified_active_count"]=evidence["verified_active_count"]
+                result["unverified_count"]=evidence["unverified_count"]
     (out/"public_summary.json").write_text(json.dumps(result,indent=2))
     msg=("# GRIDIRON Phase43 — pass, rush & TD forecasting\n\n"
       f"**Next fixture week:** {week or 'none'}. **Freeze:** {result['snapshot_status']}.\n\n"
