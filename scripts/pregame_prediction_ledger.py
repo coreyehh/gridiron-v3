@@ -50,5 +50,5 @@ def attach_outcomes(forecasts,outcomes):
         validate(record)
         fid=fingerprint(record)
         if fid in lookup:
-            rows.append({**record,"outcome":lookup[fid]})
+            rows.append({**record,"outcome":lookup[fid],"result_verified":True})
     return rows
