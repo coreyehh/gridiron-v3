@@ -4,7 +4,7 @@ The expected SHA256 must be supplied independently from the observation rows.
 This proves agreement with pinned bytes, not official NFL attestation or
 fixture identity; callers must supply a separately trusted fixture/week map.
 """
-import hashlib
+import hashlib,math
 from pathlib import Path
 import pandas as pd
 
@@ -46,7 +46,7 @@ class PinnedNflverseResultVerifier:
             if not hasattr(row,column):return False
             actual=float(observation["actual"])
             source=float(getattr(row,column))
-            return (pd.notna(source) and pd.notna(actual) and actual>=0
+            return (math.isfinite(source) and math.isfinite(actual) and actual>=0
                     and source==actual
                     and observation.get("source_name")=="nflverse_player_week"
                     and observation.get("source_record_id")==f"{season}-{week}-{observation['player_id']}"
