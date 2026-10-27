@@ -22,12 +22,15 @@ STAT_MAP={
  "rushing_yards":"rushing_yards",
  "rush_attempts":"carries",
  "rushing_touchdowns":"rushing_tds",
+ "receptions":"receptions",
+ "receiving_yards":"receiving_yards",
  "receiving_touchdowns":"receiving_tds"}
 REQUIRED={"season","week","player_id","position","passing_yards","attempts",
  "completions","interceptions","passing_tds","rushing_yards","carries",
- "rushing_tds","receiving_tds"}
+ "rushing_tds","receiving_tds","receptions","receiving_yards"}
 MAE_METRICS=("passing_yards","pass_attempts","completions","interceptions",
              "passing_touchdowns","rushing_yards","rush_attempts",
+             "receptions","receiving_yards",
              "anytime_touchdown","two_plus_touchdowns","three_plus_touchdowns")
 
 def prep(frame):
