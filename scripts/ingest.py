@@ -27,7 +27,8 @@ def download(year, folder):
         raise ValueError("Season %d contains unexpected data" % year)
     if not data.week.between(1, 23).all():
         raise ValueError("Invalid NFL week in %d" % year)
-    if data.duplicated(["season", "week", "player_id"]).any():
+    identified = data["player_id"].notna() & data["player_id"].astype("string").str.strip().fillna("").ne("")
+    if data.loc[identified].duplicated(["season", "week", "player_id"]).any():
         raise ValueError("Duplicate player/week rows in %d" % year)
     return data, {
         "season": year, "rows": int(len(data)),
