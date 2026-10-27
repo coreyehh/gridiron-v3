@@ -17,6 +17,8 @@ class Tests(unittest.TestCase):
         self.assertFalse(r["probability_calibrated"])
         self.assertTrue(all(z["line_specific_probability"] is None for z in r["projections"]))
         self.assertEqual(r["approved_wagers"],0)
+        self.assertTrue(all(z["eligible_for_wager_approval"] is False for z in r["projections"]))
+        self.assertTrue(all(z["active_verified"] is False for z in r["projections"]))
     def test_modified_snapshot_rejected(self):
         s=snapshot();s["forecasts"][0]["point_projections"]["receiving_yards"]=100
         with self.assertRaisesRegex(ValueError,"digest"):export(s)
