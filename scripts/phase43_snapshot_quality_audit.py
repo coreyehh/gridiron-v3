@@ -27,6 +27,18 @@ def audit(snapshot):
                            "player_id":r["player_id"]})
         last=(r.get("last_observed_season"),r.get("last_observed_week"))
         weeks[str(last)]+=1
+        try:
+            period=r["fixture_id"].split("-W",1)
+            fixture_season=int(period[0])
+            fixture_week=int(period[1].split("-",1)[0])
+            if last[0] is None or last[1] is None:
+                issues.append({"type":"MISSING_OBSERVATION_PERIOD","player_id":r["player_id"]})
+            elif int(last[0])<fixture_season or (int(last[0])==fixture_season and fixture_week-int(last[1])>2):
+                issues.append({"type":"STALE_PLAYER_USAGE","player_id":r["player_id"],
+                               "last_observed_season":last[0],"last_observed_week":last[1]})
+        except (ValueError,TypeError,IndexError):
+            issues.append({"type":"INVALID_FIXTURE_PERIOD","player_id":r["player_id"]})
+
         if not r.get("player_name"):
             issues.append({"type":"MISSING_PLAYER_NAME","fixture_id":r["fixture_id"],
                            "player_id":r["player_id"]})
