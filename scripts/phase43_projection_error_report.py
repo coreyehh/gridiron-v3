@@ -4,6 +4,7 @@ Requires explicit verified fixture/player/market result keys. Missing observatio
 remain missing, never silently converted to zero.
 """
 from collections import defaultdict
+from datetime import datetime,timezone
 from math import isfinite,sqrt
 from statistics import mean
 
@@ -20,11 +21,25 @@ def evaluate(exported, observations, *, min_sample=10):
         if not isfinite(value) or value<0:raise ValueError("Invalid observed statistic")
         lookup[key]=value
     groups=defaultdict(list)
+    fixture_locks={}
+    seen_predictions=set()
     missing=0
     for row in exported["projections"]:
         if row.get("line_specific_probability") is not None or row.get("approved_wager") is not False:
             raise ValueError("Point-projection export contains a wager claim")
         key=(str(row["fixture_id"]),str(row["player_id"]),str(row["market"]))
+        if key in seen_predictions:raise ValueError("Duplicate projection")
+        seen_predictions.add(key)
+        # Original point projections must carry a verifiable pregame lock.
+        if not row.get("forecast_at_utc") or not row.get("snapshot_sha256"):
+            raise ValueError("Missing immutable pregame lock metadata")
+        try:
+            locked=datetime.fromisoformat(str(row["forecast_at_utc"]).replace("Z","+00:00"))
+        except (ValueError,TypeError):
+            raise ValueError("Invalid pregame lock timestamp")
+        if locked.tzinfo is None:raise ValueError("Naive pregame lock timestamp")
+        if str(row["snapshot_sha256"])!=str(exported.get("snapshot_sha256")):
+            raise ValueError("Snapshot digest mismatch")
         if key not in lookup:
             missing+=1
             continue
