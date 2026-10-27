@@ -131,6 +131,11 @@ def build(schedule,raw,roster,week,asof,hashes):
                 if position not in ("QB","RB","WR","TE"):continue
                 info=forecast_player(observed,position)
                 if info is None:continue
+                last_team=str(observed.sort_values(["season","week"]).iloc[-1].team_code)
+                info["last_observed_team"]=last_team
+                info["historical_team_transition"]=last_team!=club
+                if last_team!=club:
+                    info["eligibility_status"]="UNVERIFIED_TEAM_TRANSITION_AND_GAME_DAY_ROLE"
                 forecasts.append({"fixture_id":fid,"team":club,"player_id":pid,
                   "player_name":name,**info})
     if not forecasts:raise ValueError("No source-backed player history for future games")
