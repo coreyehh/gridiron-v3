@@ -27,6 +27,7 @@ on:
       - 'tests/test_phase43_projection_ledger_export.py'
       - 'scripts/phase43_projection_error_report.py'
       - 'tests/test_phase43_projection_error_report.py'
+      - 'scripts/run_phase43_projection_audit.py'
       - 'tests/test_current_season_audit.py'
       - '.github/workflows/current-season-audit-tests.yml'
   workflow_dispatch:
