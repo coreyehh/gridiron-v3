@@ -19,6 +19,11 @@ class Tests(unittest.TestCase):
         self.assertEqual(x["issue_counts"]["ACTIVE_STATUS_UNVERIFIED"],1)
         self.assertEqual(x["issue_counts"]["ROLE_UNVERIFIED"],1)
         self.assertFalse(x["ready_for_wager_approval"])
+    def test_stale_usage_flagged(self):
+        x=snap()
+        x["forecasts"][0]["last_observed_week"]=1
+        x["payload_sha256"]=digest({k:v for k,v in x.items() if k!="payload_sha256"})
+        self.assertEqual(audit(x)["issue_counts"]["STALE_PLAYER_USAGE"],1)
     def test_wrong_team_flagged(self):
         x=snap();x["forecasts"][0]["team"]="DAL"
         x["payload_sha256"]=digest({k:v for k,v in x.items() if k!="payload_sha256"})
