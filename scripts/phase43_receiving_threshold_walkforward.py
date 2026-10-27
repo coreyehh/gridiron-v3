@@ -11,6 +11,14 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
     current=hist[(hist.season==2026)&(hist.week.between(first_week,last_week))]
     thresholds=thresholds or {"receptions":(4,5,6),"receiving_yards":(50,70,100)}
     rows=[]
+    prior_baselines={}
+    for wk in range(first_week,last_week+1):
+        training=hist[(hist.season<2026)|((hist.season==2026)&(hist.week<wk))]
+        for market,lines in thresholds.items():
+            values=pd.to_numeric(training[market],errors="coerce").dropna()
+            for line in lines:
+                prior_baselines[(wk,market,float(line))]=(
+                    float((values>=line).mean()) if len(values) else None)
     for actual in current.itertuples(index=False):
         prediction=historical_thresholds(hist,str(actual.player_id),
                   season=2026,week=int(actual.week),
@@ -23,7 +31,9 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
                 p=record["empirical_hit_rate"]
                 if p is None:continue
                 outcome=int(observed>=float(line))
-                rows.append({"week":int(actual.week),"player_id":str(actual.player_id),
+                baseline=prior_baselines[(int(actual.week),market,float(line))]
+                rows.append({"baseline_brier":(baseline-outcome)**2 if baseline is not None else None,
+                    "week":int(actual.week),"player_id":str(actual.player_id),
                     "market":market,"threshold":float(line),"sample_size":detail["sample_size"],
                     "empirical_rate":p,"outcome":outcome,
                     "brier":(p-outcome)**2})
@@ -33,6 +43,10 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
             group=[r for r in rows if r["market"]==market and r["threshold"]==float(line)]
             grouped[f"{market}:{line}"]={"scored_observations":len(group),
               "brier_score":round(sum(r["brier"] for r in group)/len(group),6) if group else None,
+              "baseline_brier_score":round(
+                sum(r["baseline_brier"] for r in group if r["baseline_brier"] is not None)/
+                len([r for r in group if r["baseline_brier"] is not None]),6)
+                if any(r["baseline_brier"] is not None for r in group) else None,
               "observed_hit_rate":round(sum(r["outcome"] for r in group)/len(group),6) if group else None,
               "mean_empirical_rate":round(sum(r["empirical_rate"] for r in group)/len(group),6) if group else None}
     return {"status":"HISTORICAL_WALK_FORWARD_DIAGNOSTIC_NOT_PROSPECTIVE",
