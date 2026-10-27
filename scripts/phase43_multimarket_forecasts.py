@@ -94,7 +94,9 @@ def forecast_player(prior,position):
       "source":"nflverse_observed_player_week",
       "touchdown_distribution":"UNCALIBRATED_POISSON_EXPLORATORY",
       "active_verified":False,"role_verified":False,
-      "model_real_line_calibrated":False,"qualified_bet":False}
+      "model_real_line_calibrated":False,"qualified_bet":False,
+      "eligibility_status":"UNVERIFIED_GAME_DAY_ACTIVE_AND_ROLE",
+      "eligible_for_wager_approval":False}
 
 def build(schedule,raw,roster,week,asof,hashes):
     if asof.tzinfo is None:raise ValueError("UTC aware lock time required")
