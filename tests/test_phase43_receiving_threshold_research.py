@@ -24,15 +24,23 @@ class Tests(unittest.TestCase):
     def test_no_sample(self):
         r=historical_thresholds(boxes(),"missing",season=2026,week=6)
         self.assertIsNone(r["markets"]["receptions"]["thresholds"]["5"]["empirical_hit_rate"])
-    def test_invalid_observation_is_quarantined(self):
+    def test_negative_receiving_yards_are_valid(self):
         raw=boxes()
         raw.loc[raw.week==2,"receiving_yards"]=-4
         r=historical_thresholds(raw,"p1",season=2026,week=6,
               thresholds={"receiving_yards":(70,)},min_samples=3)
         market=r["markets"]["receiving_yards"]
+        self.assertEqual(market["invalid_historical_rows_quarantined"],0)
+        self.assertEqual(market["sample_size"],5)
+        self.assertEqual(market["thresholds"]["70"]["observed_games"],5)
+    def test_negative_receptions_are_quarantined(self):
+        raw=boxes()
+        raw.loc[raw.week==2,"receptions"]=-1
+        r=historical_thresholds(raw,"p1",season=2026,week=6,
+              thresholds={"receptions":(5,)},min_samples=3)
+        market=r["markets"]["receptions"]
         self.assertEqual(market["invalid_historical_rows_quarantined"],1)
         self.assertEqual(market["sample_size"],4)
-        self.assertEqual(market["thresholds"]["70"]["observed_games"],4)
     def test_invalid_threshold(self):
         with self.assertRaises(ValueError):
             historical_thresholds(boxes(),"p1",season=2026,week=6,
