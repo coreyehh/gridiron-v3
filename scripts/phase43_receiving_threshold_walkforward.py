@@ -8,12 +8,12 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
              thresholds=None):
     if not 2<=first_week<=last_week<=18:raise ValueError("Invalid evaluation weeks")
     hist=prep(raw)
-    current=hist[(hist.season==2026)&(hist.week.between(first_week,last_week))]
+    current=hist[(hist.season==2026)&(hist.week.between(first_week,last_week)) & (hist.position.isin(("WR","TE","RB")))]
     thresholds=thresholds or {"receptions":(4,5,6),"receiving_yards":(50,70,100)}
     rows=[]
     prior_baselines={}
     for wk in range(first_week,last_week+1):
-        training=hist[(hist.season<2026)|((hist.season==2026)&(hist.week<wk))]
+        training=hist[((hist.season<2026)|((hist.season==2026)&(hist.week<wk))) & (hist.position.isin(("WR","TE","RB"))) ]
         for market,lines in thresholds.items():
             values=pd.to_numeric(training[market],errors="coerce").dropna()
             for line in lines:
@@ -58,7 +58,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
               "mean_empirical_rate":round(sum(r["empirical_rate"] for r in group)/len(group),6) if group else None}
     return {"status":"HISTORICAL_WALK_FORWARD_DIAGNOSTIC_NOT_PROSPECTIVE",
       "first_week":first_week,"last_week":last_week,"min_samples":min_samples,
-      "missing_game_rows_not_imputed":True,"calibrated":False,"approved_wagers":0,
+      "eligible_positions":["WR","TE","RB"],"missing_game_rows_not_imputed":True,"calibrated":False,"approved_wagers":0,
       "promotion_decision":"NOT_ELIGIBLE_FOR_BETTING_USE",
       "comparison_note":"Paired Brier improvement positive means lower error than prior-week league baseline.",
       "metrics":grouped,"scored_records":len(rows)}
