@@ -45,6 +45,16 @@ class Tests(unittest.TestCase):
                    thresholds={"receptions":(5,)})
         self.assertEqual(a["metrics"],b["metrics"])
         self.assertEqual(b["eligible_positions"],["WR","TE","RB"])
+    def test_prepared_history_equivalent_to_raw_history(self):
+        from scripts.phase43_multimarket_forecasts import prep
+        from scripts.phase43_receiving_threshold_research import historical_thresholds
+        raw=fixture()
+        args={"season":2026,"week":8,"thresholds":{"receptions":(5,)},"min_samples":3}
+        player=str(raw.iloc[0]["player_id"])
+        direct=historical_thresholds(raw,player,**args)
+        prepared=historical_thresholds(prep(raw),player,prepared=True,**args)
+        self.assertEqual(direct,prepared)
+
     def test_volume_gate_uses_only_prior_games(self):
         raw=fixture()
         a=evaluate(raw,first_week=5,last_week=8,min_samples=3,
