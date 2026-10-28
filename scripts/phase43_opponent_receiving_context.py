@@ -34,6 +34,21 @@ def opponent_context(history, *, opponent, position, season, week,
                 "opponent_mean":None,"shrunk_multiplier":None,
                 "status":"INSUFFICIENT_PREGAME_OPPONENT_HISTORY","approved_wagers":0}
     baseline=float(league.mean())
+    # Opponent-strength adjustment: each faced player's prior five observed
+    # games form an expected-production reference. Require stable player IDs;
+    # missing prior samples never become zero expectations.
+    adjusted_multiplier=None
+    adjusted_samples=0
+    if "player_id" in prior.columns:
+        history=prior.sort_values(["player_id","season","week"]).copy()
+        history["_expected"]=history.groupby("player_id",sort=False)["_value"].transform(
+            lambda x: x.shift(1).rolling(5,min_periods=3).mean())
+        faced=history[(history.opponent_team==opponent)&history["_expected"].notna()]
+        if len(faced)>=3 and float(faced["_expected"].sum())>0:
+            ratio=float(faced["_value"].sum()/faced["_expected"].sum())
+            weight=len(faced)/(len(faced)+shrink_games)
+            adjusted_multiplier=round(max(0.5,min(1.5,1+weight*(ratio-1))),6)
+            adjusted_samples=int(len(faced))
     if baseline<=0:
         multiplier=None
     else:
@@ -43,5 +58,7 @@ def opponent_context(history, *, opponent, position, season, week,
             "sample_size":int(len(facing)),"league_mean":round(baseline,6),
             "opponent_mean":round(float(facing.mean()),6),
             "shrunk_multiplier":multiplier,
-            "status":"DESCRIPTIVE_UNADJUSTED_FOR_OPPONENT_SCHEDULE_STRENGTH",
+            "opponent_strength_adjusted_multiplier":adjusted_multiplier,
+            "opponent_strength_adjusted_samples":adjusted_samples,
+            "status":"DESCRIPTIVE_PLAYER_HISTORY_ADJUSTED" if adjusted_multiplier is not None else "DESCRIPTIVE_UNADJUSTED_FOR_OPPONENT_SCHEDULE_STRENGTH",
             "approved_wagers":0}
