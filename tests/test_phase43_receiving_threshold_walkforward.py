@@ -73,6 +73,8 @@ class Tests(unittest.TestCase):
         self.assertIn("week_cluster_count",a["metrics"]["receptions:5"])
         self.assertEqual(len(a["metrics"]["receptions:5"]["calibration_bins"]),5)
         self.assertEqual(sum(b["n"] for b in a["metrics"]["receptions:5"]["calibration_bins"]),a["metrics"]["receptions:5"]["scored_observations"])
+        ece=a["metrics"]["receptions:5"]["expected_calibration_error"]
+        self.assertTrue(ece is None or 0<=ece<=1)
     def test_invalid_window(self):
         with self.assertRaises(ValueError):
             evaluate(fixture(),first_week=8,last_week=4)
