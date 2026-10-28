@@ -9,10 +9,10 @@ from scripts.phase43_multimarket_forecasts import prep
 
 MARKETS=("receptions","receiving_yards")
 
-def historical_thresholds(raw, player_id, *, season, week, thresholds=None, min_samples=8):
+def historical_thresholds(raw, player_id, *, season, week, thresholds=None, min_samples=8, prepared=False):
     if min_samples<3:raise ValueError("min_samples must be at least 3")
     if season!=2026 or not 1<=week<=18:raise ValueError("Unsupported target period")
-    hist=prep(raw)
+    hist=raw if prepared else prep(raw)
     prior=hist[(hist.player_id.astype(str)==str(player_id))&
        ((hist.season<season)|((hist.season==season)&(hist.week<week)))].copy()
     prior=prior.sort_values(["season","week"])
