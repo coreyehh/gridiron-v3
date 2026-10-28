@@ -6,7 +6,7 @@ import pandas as pd
 from scripts.ingest import download
 from scripts.phase43_receiving_threshold_walkforward import evaluate
 
-def run(folder,first_week=4,last_week=8,min_samples=8):
+def run(folder,first_week=4,last_week=8,min_samples=8,min_prior_receptions=None):
     folder=Path(folder);folder.mkdir(parents=True,exist_ok=True)
     frames=[];sources={}
     for year in (2025,2026):
@@ -19,7 +19,7 @@ def run(folder,first_week=4,last_week=8,min_samples=8):
     available=int(observed.week.max())
     end=min(last_week,available)
     if end<first_week:raise ValueError("No completed evaluation window")
-    report=evaluate(raw,first_week=first_week,last_week=end,min_samples=min_samples)
+    report=evaluate(raw,first_week=first_week,last_week=end,min_samples=min_samples,min_prior_receptions=min_prior_receptions)
     report["source_manifest"]=sources
     report["generated_at_utc"]=datetime.now(timezone.utc).isoformat()
     report["requested_last_week"]=last_week
@@ -33,10 +33,11 @@ def main():
     p.add_argument("--first-week",type=int,default=4)
     p.add_argument("--last-week",type=int,default=8)
     p.add_argument("--min-samples",type=int,default=8)
+    p.add_argument("--min-prior-receptions",type=float,default=None)
     p.add_argument("--data-dir",default="private_data")
     p.add_argument("--output",default="output/phase43_receiving_threshold_evaluation.json")
     a=p.parse_args()
-    result=run(a.data_dir,a.first_week,a.last_week,a.min_samples)
+    result=run(a.data_dir,a.first_week,a.last_week,a.min_samples,a.min_prior_receptions)
     dest=Path(a.output);dest.parent.mkdir(parents=True,exist_ok=True)
     dest.write_text(json.dumps(result,indent=2,sort_keys=True)+"\n")
     print(json.dumps({"scored_records":result["scored_records"],
