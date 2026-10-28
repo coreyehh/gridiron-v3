@@ -79,7 +79,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
         diffs=[r["baseline_brier"]-r["brier"] for r in group
                if r["baseline_brier"] is not None]
         n=len(diffs)
-        if n<2:return {"paired_n":n,"paired_improvement_ci95":None,"paired_improvement_familywise_ci95":None,"week_cluster_count":0,"week_cluster_familywise_ci95":None}
+        if n<2:return {"paired_n":n,"paired_improvement_ci95":None,"paired_improvement_familywise_ci95":None,"week_cluster_count":0,"week_cluster_min_required":8,"week_cluster_familywise_ci95":None}
         mean=sum(diffs)/n
         variance=sum((x-mean)**2 for x in diffs)/(n-1)
         half_width=1.96*math.sqrt(variance/n)
@@ -95,12 +95,12 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
                 week_groups.setdefault(row["week"],[]).append(row["baseline_brier"]-row["brier"])
         week_means=[sum(v)/len(v) for v in week_groups.values()]
         week_ci=None
-        if len(week_means)>=3:
+        if len(week_means)>=8:
             week_mean=sum(week_means)/len(week_means)
             week_var=sum((x-week_mean)**2 for x in week_means)/(len(week_means)-1)
             week_half=family_z*math.sqrt(week_var/len(week_means))
             week_ci=[round(week_mean-week_half,6),round(week_mean+week_half,6)]
-        return {"paired_n":n,"week_cluster_count":len(week_means),
+        return {"paired_n":n,"week_cluster_count":len(week_means),"week_cluster_min_required":8,
             "week_cluster_familywise_ci95":week_ci,
             "paired_improvement_familywise_ci95":[round(mean-family_half,6),
                                                     round(mean+family_half,6)],
