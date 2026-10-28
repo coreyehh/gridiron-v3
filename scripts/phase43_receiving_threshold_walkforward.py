@@ -60,13 +60,21 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
                     "empirical_rate":p,"outcome":outcome,
                     "brier":(p-outcome)**2})
     grouped={}
+    def calibration(group):
+        bins=[]
+        for low,high in ((0,0.2),(0.2,0.4),(0.4,0.6),(0.6,0.8),(0.8,1.000001)):
+            selected=[r for r in group if low<=r["empirical_rate"]<high]
+            bins.append({"range":[low,min(high,1.0)],"n":len(selected),
+                "mean_forecast":round(sum(r["empirical_rate"] for r in selected)/len(selected),6) if selected else None,
+                "observed_rate":round(sum(r["outcome"] for r in selected)/len(selected),6) if selected else None})
+        return bins
     # Conservative normal-approximation interval on paired per-game Brier differences.
     # Descriptive only: player-games and thresholds are not independent.
     def paired_interval(group):
         diffs=[r["baseline_brier"]-r["brier"] for r in group
                if r["baseline_brier"] is not None]
         n=len(diffs)
-        if n<2:return {"paired_n":n,"paired_improvement_ci95":None}
+        if n<2:return {"paired_n":n,"paired_improvement_ci95":None,"paired_improvement_familywise_ci95":None,"week_cluster_count":0,"week_cluster_familywise_ci95":None}
         mean=sum(diffs)/n
         variance=sum((x-mean)**2 for x in diffs)/(n-1)
         half_width=1.96*math.sqrt(variance/n)
@@ -98,7 +106,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
     for market in thresholds:
         for line in thresholds[market]:
             group=[r for r in rows if r["market"]==market and r["threshold"]==float(line)]
-            grouped[f"{market}:{line}"]={**paired_interval(group),"scored_observations":len(group),
+            grouped[f"{market}:{line}"]={**paired_interval(group),"calibration_bins":calibration(group),"scored_observations":len(group),
               "brier_score":round(sum(r["brier"] for r in group)/len(group),6) if group else None,
               "paired_brier_improvement":round(
                 sum(r["baseline_brier"]-r["brier"] for r in group
