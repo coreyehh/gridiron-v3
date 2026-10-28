@@ -55,6 +55,7 @@ class Tests(unittest.TestCase):
             thresholds={"receptions":(5,)},min_prior_receptions=4)
         self.assertEqual(a["metrics"],b["metrics"])
         self.assertEqual(a["min_prior_receptions"],4)
+        self.assertEqual(a["baseline_cohort"],"SAME_POSITION_AND_PRIOR_VOLUME")
     def test_invalid_window(self):
         with self.assertRaises(ValueError):
             evaluate(fixture(),first_week=8,last_week=4)
