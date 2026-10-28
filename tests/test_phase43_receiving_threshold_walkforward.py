@@ -65,6 +65,7 @@ class Tests(unittest.TestCase):
             thresholds={"receptions":(5,)},min_prior_receptions=4)
         self.assertEqual(a["metrics"],b["metrics"])
         self.assertEqual(a["min_prior_receptions"],4)
+        self.assertEqual(a["available_weeks"],[5,6,7,8])
         self.assertEqual(a["baseline_cohort"],"SAME_POSITION_AND_PRIOR_VOLUME")
         self.assertIn("paired_improvement_ci95",a["metrics"]["receptions:5"])
         self.assertIn("paired_n",a["metrics"]["receptions:5"])
