@@ -8,6 +8,9 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
              thresholds=None, min_prior_receptions=None):
     if not 2<=first_week<=last_week<=18:raise ValueError("Invalid evaluation weeks")
     hist=prep(raw)
+    # Report observed coverage rather than silently implying all weeks exist.
+    available_weeks=sorted(int(w) for w in hist.loc[
+        (hist.season==2026)&(hist.week.between(first_week,last_week)),"week"].unique())
     current=hist[(hist.season==2026)&(hist.week.between(first_week,last_week)) & (hist.position.isin(("WR","TE","RB")))]
     thresholds=thresholds or {"receptions":(4,5,6),"receiving_yards":(50,70,100)}
     if min_prior_receptions is not None and min_prior_receptions<0:raise ValueError("Invalid volume floor")
@@ -142,7 +145,8 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
               "observed_hit_rate":round(sum(r["outcome"] for r in group)/len(group),6) if group else None,
               "mean_empirical_rate":round(sum(r["empirical_rate"] for r in group)/len(group),6) if group else None}
     return {"status":"HISTORICAL_WALK_FORWARD_DIAGNOSTIC_NOT_PROSPECTIVE",
-      "first_week":first_week,"last_week":last_week,"min_samples":min_samples,
+      "first_week":first_week,"last_week":last_week,"available_weeks":available_weeks,
+      "min_samples":min_samples,
       "baseline_cohort":"SAME_POSITION_AND_PRIOR_VOLUME" if min_prior_receptions is not None else "SAME_POSITION_PRIOR_WEEKS",
       "eligible_positions":["WR","TE","RB"],"min_prior_receptions":min_prior_receptions,"missing_game_rows_not_imputed":True,"calibrated":False,"approved_wagers":0,
       "promotion_decision":"NOT_ELIGIBLE_FOR_BETTING_USE",
