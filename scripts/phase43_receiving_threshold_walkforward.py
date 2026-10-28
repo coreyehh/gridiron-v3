@@ -12,9 +12,21 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
     thresholds=thresholds or {"receptions":(4,5,6),"receiving_yards":(50,70,100)}
     if min_prior_receptions is not None and min_prior_receptions<0:raise ValueError("Invalid volume floor")
     rows=[]
+    # Each historical comparison row must itself qualify using only its
+    # own earlier player-games. Do not select peers by future workload.
+    baseline_hist=hist
+    if min_prior_receptions is not None:
+        baseline_hist=hist.sort_values(["player_id","season","week"]).copy()
+        prior_receipts=pd.to_numeric(baseline_hist["receptions"],errors="coerce")
+        baseline_hist["_prior_receptions"]=prior_receipts
+        grouped=baseline_hist.groupby("player_id",sort=False)["_prior_receptions"]
+        baseline_hist["_prior_volume_mean"]=grouped.transform(
+            lambda x: x.shift(1).rolling(5,min_periods=3).mean())
+        baseline_hist=baseline_hist[
+            baseline_hist["_prior_volume_mean"]>=min_prior_receptions]
     prior_baselines={}
     for wk in range(first_week,last_week+1):
-        training=hist[((hist.season<2026)|((hist.season==2026)&(hist.week<wk))) & (hist.position.isin(("WR","TE","RB"))) ]
+        training=baseline_hist[((baseline_hist.season<2026)|((baseline_hist.season==2026)&(baseline_hist.week<wk))) & (hist.position.isin(("WR","TE","RB"))) ]
         for position in ("WR","TE","RB"):
             position_training=training[training.position==position]
             for market,lines in thresholds.items():
@@ -68,7 +80,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
               "mean_empirical_rate":round(sum(r["empirical_rate"] for r in group)/len(group),6) if group else None}
     return {"status":"HISTORICAL_WALK_FORWARD_DIAGNOSTIC_NOT_PROSPECTIVE",
       "first_week":first_week,"last_week":last_week,"min_samples":min_samples,
-      "baseline_cohort":"SAME_POSITION_PRIOR_WEEKS",
+      "baseline_cohort":"SAME_POSITION_AND_PRIOR_VOLUME" if min_prior_receptions is not None else "SAME_POSITION_PRIOR_WEEKS",
       "eligible_positions":["WR","TE","RB"],"min_prior_receptions":min_prior_receptions,"missing_game_rows_not_imputed":True,"calibrated":False,"approved_wagers":0,
       "promotion_decision":"NOT_ELIGIBLE_FOR_BETTING_USE",
       "comparison_note":"Paired Brier improvement positive means lower error than prior-week league baseline.",
