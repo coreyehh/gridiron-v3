@@ -58,6 +58,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(a["baseline_cohort"],"SAME_POSITION_AND_PRIOR_VOLUME")
         self.assertIn("paired_improvement_ci95",a["metrics"]["receptions:5"])
         self.assertIn("paired_n",a["metrics"]["receptions:5"])
+        self.assertIn("paired_improvement_familywise_ci95",a["metrics"]["receptions:5"])
     def test_invalid_window(self):
         with self.assertRaises(ValueError):
             evaluate(fixture(),first_week=8,last_week=4)
