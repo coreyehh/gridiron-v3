@@ -44,7 +44,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
                 continue
         prediction=historical_thresholds(hist,str(actual.player_id),
                   season=2026,week=int(actual.week),
-                  thresholds=thresholds,min_samples=min_samples)
+                  thresholds=thresholds,min_samples=min_samples,prepared=True)
         for market,detail in prediction["markets"].items():
             if not detail["sufficient_for_descriptive_review"]:continue
             observed=float(getattr(actual,market))
