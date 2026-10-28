@@ -15,11 +15,14 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
     prior_baselines={}
     for wk in range(first_week,last_week+1):
         training=hist[((hist.season<2026)|((hist.season==2026)&(hist.week<wk))) & (hist.position.isin(("WR","TE","RB"))) ]
-        for market,lines in thresholds.items():
-            values=pd.to_numeric(training[market],errors="coerce").dropna()
-            for line in lines:
-                prior_baselines[(wk,market,float(line))]=(
-                    float((values>=line).mean()) if len(values) else None)
+        for position in ("WR","TE","RB"):
+            position_training=training[training.position==position]
+            for market,lines in thresholds.items():
+                values=pd.to_numeric(position_training[market],errors="coerce").dropna()
+                values=values[values.map(lambda v: math.isfinite(float(v)) and (market=="receiving_yards" or v>=0))]
+                for line in lines:
+                    prior_baselines[(wk,position,market,float(line))]=(
+                        float((values>=line).mean()) if len(values) else None)
     for actual in current.itertuples(index=False):
         if min_prior_receptions is not None:
             prior=hist[(hist.player_id.astype(str)==str(actual.player_id)) &
@@ -38,7 +41,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
                 p=record["empirical_hit_rate"]
                 if p is None:continue
                 outcome=int(observed>=float(line))
-                baseline=prior_baselines[(int(actual.week),market,float(line))]
+                baseline=prior_baselines[(int(actual.week),str(actual.position),market,float(line))]
                 rows.append({"baseline_brier":(baseline-outcome)**2 if baseline is not None else None,
                     "week":int(actual.week),"player_id":str(actual.player_id),
                     "market":market,"threshold":float(line),"sample_size":detail["sample_size"],
@@ -65,6 +68,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
               "mean_empirical_rate":round(sum(r["empirical_rate"] for r in group)/len(group),6) if group else None}
     return {"status":"HISTORICAL_WALK_FORWARD_DIAGNOSTIC_NOT_PROSPECTIVE",
       "first_week":first_week,"last_week":last_week,"min_samples":min_samples,
+      "baseline_cohort":"SAME_POSITION_PRIOR_WEEKS",
       "eligible_positions":["WR","TE","RB"],"min_prior_receptions":min_prior_receptions,"missing_game_rows_not_imputed":True,"calibrated":False,"approved_wagers":0,
       "promotion_decision":"NOT_ELIGIBLE_FOR_BETTING_USE",
       "comparison_note":"Paired Brier improvement positive means lower error than prior-week league baseline.",
