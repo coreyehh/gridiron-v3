@@ -33,6 +33,18 @@ class Tests(unittest.TestCase):
         b=evaluate(altered,first_week=5,last_week=8,min_samples=3,
                    thresholds={"receptions":(5,)})
         self.assertEqual(a["metrics"],b["metrics"])
+    def test_non_receiving_positions_excluded(self):
+        raw=fixture()
+        qb=raw.copy()
+        qb["player_id"]="qb1"
+        qb["position"]="QB"
+        combined=pd.concat([raw,qb],ignore_index=True)
+        a=evaluate(raw,first_week=5,last_week=8,min_samples=3,
+                   thresholds={"receptions":(5,)})
+        b=evaluate(combined,first_week=5,last_week=8,min_samples=3,
+                   thresholds={"receptions":(5,)})
+        self.assertEqual(a["metrics"],b["metrics"])
+        self.assertEqual(b["eligible_positions"],["WR","TE","RB"])
     def test_invalid_window(self):
         with self.assertRaises(ValueError):
             evaluate(fixture(),first_week=8,last_week=4)
