@@ -68,6 +68,11 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
                 "mean_forecast":round(sum(r["empirical_rate"] for r in selected)/len(selected),6) if selected else None,
                 "observed_rate":round(sum(r["outcome"] for r in selected)/len(selected),6) if selected else None})
         return bins
+    def calibration_error(group):
+        if not group:return None
+        bins=calibration(group)
+        return round(sum(b["n"]*abs(b["mean_forecast"]-b["observed_rate"])
+            for b in bins if b["n"])/len(group),6)
     # Conservative normal-approximation interval on paired per-game Brier differences.
     # Descriptive only: player-games and thresholds are not independent.
     def paired_interval(group):
@@ -106,7 +111,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
     for market in thresholds:
         for line in thresholds[market]:
             group=[r for r in rows if r["market"]==market and r["threshold"]==float(line)]
-            grouped[f"{market}:{line}"]={**paired_interval(group),"calibration_bins":calibration(group),"scored_observations":len(group),
+            grouped[f"{market}:{line}"]={**paired_interval(group),"calibration_bins":calibration(group),"expected_calibration_error":calibration_error(group),"scored_observations":len(group),
               "brier_score":round(sum(r["brier"] for r in group)/len(group),6) if group else None,
               "paired_brier_improvement":round(
                 sum(r["baseline_brier"]-r["brier"] for r in group
