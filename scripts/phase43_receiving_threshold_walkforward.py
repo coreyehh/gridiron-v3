@@ -60,6 +60,16 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
                     "empirical_rate":p,"outcome":outcome,
                     "brier":(p-outcome)**2})
     grouped={}
+    def weekly_breakdown(group):
+        out=[]
+        for week in sorted({r["week"] for r in group}):
+            subset=[r for r in group if r["week"]==week]
+            paired=[r for r in subset if r["baseline_brier"] is not None]
+            out.append({"week":week,"n":len(subset),
+                "model_brier":round(sum(r["brier"] for r in subset)/len(subset),6),
+                "baseline_brier":round(sum(r["baseline_brier"] for r in paired)/len(paired),6) if paired else None,
+                "paired_improvement":round(sum(r["baseline_brier"]-r["brier"] for r in paired)/len(paired),6) if paired else None})
+        return out
     def calibration(group):
         bins=[]
         for low,high in ((0,0.2),(0.2,0.4),(0.4,0.6),(0.6,0.8),(0.8,1.000001)):
@@ -111,7 +121,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
     for market in thresholds:
         for line in thresholds[market]:
             group=[r for r in rows if r["market"]==market and r["threshold"]==float(line)]
-            grouped[f"{market}:{line}"]={**paired_interval(group),"calibration_bins":calibration(group),"expected_calibration_error":calibration_error(group),"scored_observations":len(group),
+            grouped[f"{market}:{line}"]={**paired_interval(group),"calibration_bins":calibration(group),"weekly_breakdown":weekly_breakdown(group),"expected_calibration_error":calibration_error(group),"scored_observations":len(group),
               "brier_score":round(sum(r["brier"] for r in group)/len(group),6) if group else None,
               "paired_brier_improvement":round(
                 sum(r["baseline_brier"]-r["brier"] for r in group
