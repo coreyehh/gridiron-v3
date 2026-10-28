@@ -45,6 +45,16 @@ class Tests(unittest.TestCase):
                    thresholds={"receptions":(5,)})
         self.assertEqual(a["metrics"],b["metrics"])
         self.assertEqual(b["eligible_positions"],["WR","TE","RB"])
+    def test_volume_gate_uses_only_prior_games(self):
+        raw=fixture()
+        a=evaluate(raw,first_week=5,last_week=8,min_samples=3,
+            thresholds={"receptions":(5,)},min_prior_receptions=4)
+        altered=raw.copy()
+        altered.loc[altered.week==10,"receptions"]=1000
+        b=evaluate(altered,first_week=5,last_week=8,min_samples=3,
+            thresholds={"receptions":(5,)},min_prior_receptions=4)
+        self.assertEqual(a["metrics"],b["metrics"])
+        self.assertEqual(a["min_prior_receptions"],4)
     def test_invalid_window(self):
         with self.assertRaises(ValueError):
             evaluate(fixture(),first_week=8,last_week=4)
