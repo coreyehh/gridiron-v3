@@ -1,0 +1,50 @@
+name: GRIDIRON Phase43 prospective forecast capture
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 12 * * 3,6'
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned project dependencies
+        run: pip install -r requirements.txt
+      - name: Generate future-only forecast locks
+        run: |
+          python -m scripts.phase43_multimarket_forecasts \
+            --week 0 \
+            --output-dir output/phase43_prospective \
+            --lock-dir output/phase43_prospective/locks
+      - name: Validate and archive generated locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/phase43_prospective/evidence
+          shopt -s nullglob
+          count=0
+          for snapshot in output/phase43_prospective/locks/2026-week-*.json; do
+            stem="$(basename "$snapshot" .json)"
+            python -m scripts.archive_phase43_snapshot \
+              --snapshot "$snapshot" \
+              --archive "output/phase43_prospective/evidence/${stem}.json" \
+              --manifest "output/phase43_prospective/evidence/${stem}.manifest.json"
+            count=$((count+1))
+          done
+          echo "New future-only locks archived: $count" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$count" -eq 0 ]; then
+            echo "No eligible future game was locked; no prospective forecast is claimed." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain forecast, summary and evidence in timestamped run
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase43-prospective-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/phase43_prospective/
+          retention-days: 90
+          if-no-files-found: error

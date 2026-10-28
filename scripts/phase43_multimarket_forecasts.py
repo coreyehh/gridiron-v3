@@ -22,12 +22,15 @@ STAT_MAP={
  "rushing_yards":"rushing_yards",
  "rush_attempts":"carries",
  "rushing_touchdowns":"rushing_tds",
+ "receptions":"receptions",
+ "receiving_yards":"receiving_yards",
  "receiving_touchdowns":"receiving_tds"}
 REQUIRED={"season","week","player_id","position","passing_yards","attempts",
  "completions","interceptions","passing_tds","rushing_yards","carries",
- "rushing_tds","receiving_tds"}
+ "rushing_tds","receiving_tds","receptions","receiving_yards"}
 MAE_METRICS=("passing_yards","pass_attempts","completions","interceptions",
              "passing_touchdowns","rushing_yards","rush_attempts",
+             "receptions","receiving_yards",
              "anytime_touchdown","two_plus_touchdowns","three_plus_touchdowns")
 
 def prep(frame):
@@ -38,6 +41,10 @@ def prep(frame):
     if not REQUIRED.issubset(frame.columns):
         raise ValueError("Missing nflverse player statistics: "+str(sorted(REQUIRED-set(frame.columns))))
     f=frame.copy()
+    # Quarantine unidentified player-week rows before any player grouping.
+    identified=f["player_id"].notna() & f["player_id"].astype("string").str.strip().fillna("").ne("")
+    f=f.loc[identified].copy()
+    if f.empty:raise ValueError("No identified player-week records")
     if "season_type" in f:f=f[f.season_type=="REG"].copy()
     col="recent_team" if "recent_team" in f else "team"
     if col not in f:raise ValueError("Team code missing")
@@ -90,7 +97,9 @@ def forecast_player(prior,position):
       "source":"nflverse_observed_player_week",
       "touchdown_distribution":"UNCALIBRATED_POISSON_EXPLORATORY",
       "active_verified":False,"role_verified":False,
-      "model_real_line_calibrated":False,"qualified_bet":False}
+      "model_real_line_calibrated":False,"qualified_bet":False,
+      "eligibility_status":"UNVERIFIED_GAME_DAY_ACTIVE_AND_ROLE",
+      "eligible_for_wager_approval":False}
 
 def build(schedule,raw,roster,week,asof,hashes):
     if asof.tzinfo is None:raise ValueError("UTC aware lock time required")
@@ -116,12 +125,20 @@ def build(schedule,raw,roster,week,asof,hashes):
         for club in (g.away_team,g.home_team):
             names=sorted((pid,name) for (team,pid),name in roster_names.items() if team==club)
             for pid,name in names:
-                observed=prior[(prior.player_id.astype(str)==pid)&(prior.team_code==club)]
+                # Forecast a player's history across team changes. Current roster
+                # establishes the fixture team; historical club must not erase
+                # legitimate prior production after a trade or signing.
+                observed=prior[prior.player_id.astype(str)==pid]
                 if observed.empty:continue
                 position=roster_position[(club,pid)] or str(observed.iloc[-1].position)
                 if position not in ("QB","RB","WR","TE"):continue
                 info=forecast_player(observed,position)
                 if info is None:continue
+                last_team=str(observed.sort_values(["season","week"]).iloc[-1].team_code)
+                info["last_observed_team"]=last_team
+                info["historical_team_transition"]=last_team!=club
+                if last_team!=club:
+                    info["eligibility_status"]="UNVERIFIED_TEAM_TRANSITION_AND_GAME_DAY_ROLE"
                 forecasts.append({"fixture_id":fid,"team":club,"player_id":pid,
                   "player_name":name,**info})
     if not forecasts:raise ValueError("No source-backed player history for future games")
@@ -209,9 +226,12 @@ def main():
      (schedule.gameday.astype(str)>now.date().isoformat())&
      (schedule.home_score.isna())&(schedule.away_score.isna())]
     week=a.week or (int(future.sort_values("gameday").iloc[0].week) if len(future) else 0)
+    from scripts.phase43_player_eligibility_gate import evaluate as eligibility_audit
     result={"version":VERSION,"target_week":week,
      "diagnostic":diagnostic,"snapshot_status":"NOT_CREATED","snapshot_path":None,
-     "sportsbook_requests":0,"qualified_bets":0}
+     "sportsbook_requests":0,"qualified_bets":0,
+     "eligibility_status":"NO_SNAPSHOT","verified_active_count":0,
+     "unverified_count":0}
     if week:
         lockdir=Path(a.lock_dir);lockdir.mkdir(parents=True,exist_ok=True)
         path=lockdir/f"2026-week-{week:02d}.json"
@@ -219,6 +239,10 @@ def main():
             existing=json.loads(path.read_text());verify(existing)
             result["snapshot_status"]="ALREADY_LOCKED_UNCHANGED"
             result["snapshot_path"]=str(path)
+            evidence=eligibility_audit(existing)
+            result["eligibility_status"]=evidence["status"]
+            result["verified_active_count"]=evidence["verified_active_count"]
+            result["unverified_count"]=evidence["unverified_count"]
         else:
             try:snap=build(schedule,raw,roster,week,now,hashes)
             except ValueError:
@@ -229,6 +253,10 @@ def main():
                 result["snapshot_status"]="FROZEN_FUTURE_PROJECTIONS"
                 result["snapshot_path"]=str(path)
                 result["new_forecasts"]=len(snap["forecasts"])
+                evidence=eligibility_audit(snap)
+                result["eligibility_status"]=evidence["status"]
+                result["verified_active_count"]=evidence["verified_active_count"]
+                result["unverified_count"]=evidence["unverified_count"]
     (out/"public_summary.json").write_text(json.dumps(result,indent=2))
     msg=("# GRIDIRON Phase43 — pass, rush & TD forecasting\n\n"
       f"**Next fixture week:** {week or 'none'}. **Freeze:** {result['snapshot_status']}.\n\n"

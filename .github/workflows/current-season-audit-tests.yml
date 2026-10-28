@@ -1,0 +1,106 @@
+name: GRIDIRON current-season audit unit tests
+on:
+  pull_request:
+    paths:
+      - 'scripts/audit_current_season.py'
+      - 'scripts/audit_player_identity.py'
+      - 'scripts/ingest.py'
+      - 'scripts/pregame_availability_gate.py'
+      - 'tests/test_pregame_availability_gate.py'
+      - 'scripts/availability_evidence_adapter.py'
+      - 'tests/test_availability_evidence_adapter.py'
+      - 'scripts/availability_source_verifier.py'
+      - 'tests/test_availability_source_verifier.py'
+      - 'scripts/wager_approval_gate.py'
+      - 'tests/test_wager_approval_gate.py'
+      - 'scripts/market_price_math.py'
+      - 'tests/test_market_price_math.py'
+      - 'scripts/probability_calibration_audit.py'
+      - 'tests/test_probability_calibration_audit.py'
+      - 'scripts/pregame_prediction_ledger.py'
+      - 'tests/test_pregame_prediction_ledger.py'
+      - 'scripts/market_accountability_report.py'
+      - 'tests/test_market_accountability_report.py'
+      - 'scripts/phase43_multimarket_forecasts.py'
+      - 'tests/test_phase43_identity_quarantine.py'
+      - 'scripts/phase43_projection_ledger_export.py'
+      - 'tests/test_phase43_projection_ledger_export.py'
+      - 'scripts/phase43_projection_error_report.py'
+      - 'tests/test_phase43_projection_error_report.py'
+      - 'scripts/run_phase43_projection_audit.py'
+      - 'scripts/archive_phase43_snapshot.py'
+      - 'tests/test_archive_phase43_snapshot.py'
+      - 'scripts/result_source_verifier.py'
+      - 'tests/test_result_source_verifier.py'
+      - 'scripts/nflverse_result_verifier.py'
+      - 'tests/test_nflverse_result_verifier.py'
+      - 'scripts/pinned_fixture_mapper.py'
+      - 'tests/test_pinned_fixture_mapper.py'
+      - 'scripts/reconcile_phase43_observed_boxes.py'
+      - 'tests/test_reconcile_phase43_observed_boxes.py'
+      - 'scripts/phase43_snapshot_quality_audit.py'
+      - 'tests/test_phase43_snapshot_quality_audit.py'
+      - 'scripts/phase43_player_eligibility_gate.py'
+      - 'tests/test_phase43_player_eligibility_gate.py'
+      - 'tests/test_phase43_runner_eligibility_integration.py'
+      - '.github/workflows/phase43-prospective-capture.yml'
+      - 'tests/test_phase43_prospective_capture_workflow.py'
+      - 'tests/test_phase43_team_transition.py'
+      - 'tests/test_phase43_receiving_markets.py'
+      - 'scripts/phase43_receiving_threshold_research.py'
+      - 'tests/test_phase43_receiving_threshold_research.py'
+      - 'scripts/phase43_receiving_threshold_walkforward.py'
+      - 'tests/test_phase43_receiving_threshold_walkforward.py'
+      - 'scripts/run_phase43_receiving_evaluation.py'
+      - 'tests/test_run_phase43_receiving_evaluation.py'
+      - '.github/workflows/phase43-receiving-evaluation.yml'
+      - 'tests/test_current_season_audit.py'
+      - '.github/workflows/current-season-audit-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -p 'test_*audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_availability_gate.py' -v && python -m unittest discover -s tests -p 'test_availability_evidence_adapter.py' -v && python -m unittest discover -s tests -p 'test_availability_source_verifier.py' -v && python -m unittest discover -s tests -p 'test_wager_approval_gate.py' -v && python -m unittest discover -s tests -p 'test_market_price_math.py' -v && python -m unittest discover -s tests -p 'test_probability_calibration_audit.py' -v && python -m unittest discover -s tests -p 'test_pregame_prediction_ledger.py' -v && python -m unittest discover -s tests -p 'test_market_accountability_report.py' -v && python -m unittest discover -s tests -p 'test_phase43_identity_quarantine.py' -v && python -m unittest discover -s tests -p 'test_phase43_projection_ledger_export.py' -v && python -m unittest discover -s tests -p 'test_phase43_projection_error_report.py' -v && python -m unittest discover -s tests -p 'test_archive_phase43_snapshot.py' -v && python -m unittest discover -s tests -p 'test_result_source_verifier.py' -v && python -m unittest discover -s tests -p 'test_nflverse_result_verifier.py' -v && python -m unittest discover -s tests -p 'test_pinned_fixture_mapper.py' -v && python -m unittest discover -s tests -p 'test_reconcile_phase43_observed_boxes.py' -v && python -m unittest discover -s tests -p 'test_phase43_snapshot_quality_audit.py' -v && python -m unittest discover -s tests -p 'test_phase43_player_eligibility_gate.py' -v && python -m unittest discover -s tests -p 'test_phase43_runner_eligibility_integration.py' -v && python -m unittest discover -s tests -p 'test_phase43_prospective_capture_workflow.py' -v && python -m unittest discover -s tests -p 'test_phase43_team_transition.py' -v && python -m unittest discover -s tests -p 'test_phase43_receiving_markets.py' -v && python -m unittest discover -s tests -p 'test_phase43_receiving_threshold_research.py' -v && python -m unittest discover -s tests -p 'test_phase43_receiving_threshold_walkforward.py' -v && python -m unittest discover -s tests -p 'test_run_phase43_receiving_evaluation.py' -v
+  integration-2026:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Download 2026 NFL player-week data
+        run: python scripts/ingest.py --seasons 2026 --output output/current_2026
+      - name: Audit observed 2026 season coverage
+        run: python scripts/audit_current_season.py --manifest output/current_2026/manifest.json --features output/current_2026/features.csv --season 2026 --min-week 6 --max-age-days 14
+      - name: Audit source player-to-team identity
+        run: python scripts/audit_player_identity.py --source output/current_2026/stats_player_week_2026.parquet --season 2026 --output output/current_2026/identity_audit.json
+      - name: Execute real 2026 receiving threshold evaluation
+        run: |
+          python -m scripts.run_phase43_receiving_evaluation \
+            --first-week 4 --last-week 7 --min-samples 8 \
+            --output output/current_2026/receiving_threshold_evaluation.json
+      - name: Evaluate prior-volume-qualified receiving candidates
+        run: |
+          python -m scripts.run_phase43_receiving_evaluation \
+            --first-week 4 --last-week 7 --min-samples 8 \
+            --min-prior-receptions 3 \
+            --output output/current_2026/receiving_volume_qualified_evaluation.json
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-season-2026-pr-validation
+          path: output/current_2026/
+          retention-days: 14
+          if-no-files-found: warn

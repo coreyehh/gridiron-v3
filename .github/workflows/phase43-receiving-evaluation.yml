@@ -1,0 +1,30 @@
+name: GRIDIRON 2026 receiving threshold evaluation
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '45 12 * * 2'
+permissions:
+  contents: read
+jobs:
+  receiving-evaluation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install project dependencies
+        run: pip install -r requirements.txt
+      - name: Score observed 2026 receiving thresholds
+        run: |
+          python -m scripts.run_phase43_receiving_evaluation \
+            --first-week 4 --last-week 18 --min-samples 8 \
+            --output output/phase43_receiving_threshold_evaluation.json
+      - name: Upload source-tracked evaluation
+        uses: actions/upload-artifact@v4
+        with:
+          name: receiving-evaluation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/phase43_receiving_threshold_evaluation.json
+          retention-days: 90
+          if-no-files-found: error
