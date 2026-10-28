@@ -25,7 +25,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
             prior=hist[(hist.player_id.astype(str)==str(actual.player_id)) &
               ((hist.season<2026)|((hist.season==2026)&(hist.week<int(actual.week))))]
             prior_values=pd.to_numeric(prior.sort_values(["season","week"]).tail(5)["receptions"],errors="coerce").dropna()
-            if len(prior_values)<min_samples or float(prior_values.mean())<min_prior_receptions:
+            if len(prior_values)<3 or float(prior_values.mean())<min_prior_receptions:
                 continue
         prediction=historical_thresholds(hist,str(actual.player_id),
                   season=2026,week=int(actual.week),
