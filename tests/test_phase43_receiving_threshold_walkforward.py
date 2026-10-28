@@ -71,6 +71,7 @@ class Tests(unittest.TestCase):
         self.assertIn("paired_improvement_familywise_ci95",a["metrics"]["receptions:5"])
         self.assertIn("week_cluster_familywise_ci95",a["metrics"]["receptions:5"])
         self.assertIn("week_cluster_count",a["metrics"]["receptions:5"])
+        self.assertEqual(a["metrics"]["receptions:5"]["week_cluster_min_required"],8)
         self.assertEqual(len(a["metrics"]["receptions:5"]["calibration_bins"]),5)
         self.assertEqual(sum(b["n"] for b in a["metrics"]["receptions:5"]["calibration_bins"]),a["metrics"]["receptions:5"]["scored_observations"])
         ece=a["metrics"]["receptions:5"]["expected_calibration_error"]
