@@ -70,7 +70,14 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
         mean=sum(diffs)/n
         variance=sum((x-mean)**2 for x in diffs)/(n-1)
         half_width=1.96*math.sqrt(variance/n)
-        return {"paired_n":n,"paired_improvement_ci95":[
+        # Six predeclared thresholds: Bonferroni-adjusted familywise 95%
+        # normal interval; still descriptive without cluster correction.
+        family_z=2.638
+        family_half=family_z*math.sqrt(variance/n)
+        return {"paired_n":n,
+            "paired_improvement_familywise_ci95":[round(mean-family_half,6),
+                                                    round(mean+family_half,6)],
+            "paired_improvement_ci95":[
             round(mean-half_width,6),round(mean+half_width,6)]}
     # Promotion remains blocked even if a small historical slice beats baseline.
     # Paired comparisons use the exact same observed player-games.
@@ -95,5 +102,5 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
       "baseline_cohort":"SAME_POSITION_AND_PRIOR_VOLUME" if min_prior_receptions is not None else "SAME_POSITION_PRIOR_WEEKS",
       "eligible_positions":["WR","TE","RB"],"min_prior_receptions":min_prior_receptions,"missing_game_rows_not_imputed":True,"calibrated":False,"approved_wagers":0,
       "promotion_decision":"NOT_ELIGIBLE_FOR_BETTING_USE",
-      "comparison_note":"Paired Brier improvement positive means lower error than historical matched baseline. Normal-approximation CI is descriptive and does not account for player/game clustering.",
+      "comparison_note":"Paired Brier improvement positive means lower error than historical matched baseline. Normal-approximation intervals, including six-test Bonferroni intervals, are descriptive and do not account for player/game clustering.",
       "metrics":grouped,"scored_records":len(rows)}
