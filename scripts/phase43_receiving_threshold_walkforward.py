@@ -5,11 +5,12 @@ from scripts.phase43_multimarket_forecasts import prep
 from scripts.phase43_receiving_threshold_research import historical_thresholds
 
 def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
-             thresholds=None):
+             thresholds=None, min_prior_receptions=None):
     if not 2<=first_week<=last_week<=18:raise ValueError("Invalid evaluation weeks")
     hist=prep(raw)
     current=hist[(hist.season==2026)&(hist.week.between(first_week,last_week)) & (hist.position.isin(("WR","TE","RB")))]
     thresholds=thresholds or {"receptions":(4,5,6),"receiving_yards":(50,70,100)}
+    if min_prior_receptions is not None and min_prior_receptions<0:raise ValueError("Invalid volume floor")
     rows=[]
     prior_baselines={}
     for wk in range(first_week,last_week+1):
@@ -20,6 +21,12 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
                 prior_baselines[(wk,market,float(line))]=(
                     float((values>=line).mean()) if len(values) else None)
     for actual in current.itertuples(index=False):
+        if min_prior_receptions is not None:
+            prior=hist[(hist.player_id.astype(str)==str(actual.player_id)) &
+              ((hist.season<2026)|((hist.season==2026)&(hist.week<int(actual.week))))]
+            prior_values=pd.to_numeric(prior.sort_values(["season","week"]).tail(5)["receptions"],errors="coerce").dropna()
+            if len(prior_values)<min_samples or float(prior_values.mean())<min_prior_receptions:
+                continue
         prediction=historical_thresholds(hist,str(actual.player_id),
                   season=2026,week=int(actual.week),
                   thresholds=thresholds,min_samples=min_samples)
@@ -58,7 +65,7 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
               "mean_empirical_rate":round(sum(r["empirical_rate"] for r in group)/len(group),6) if group else None}
     return {"status":"HISTORICAL_WALK_FORWARD_DIAGNOSTIC_NOT_PROSPECTIVE",
       "first_week":first_week,"last_week":last_week,"min_samples":min_samples,
-      "eligible_positions":["WR","TE","RB"],"missing_game_rows_not_imputed":True,"calibrated":False,"approved_wagers":0,
+      "eligible_positions":["WR","TE","RB"],"min_prior_receptions":min_prior_receptions,"missing_game_rows_not_imputed":True,"calibrated":False,"approved_wagers":0,
       "promotion_decision":"NOT_ELIGIBLE_FOR_BETTING_USE",
       "comparison_note":"Paired Brier improvement positive means lower error than prior-week league baseline.",
       "metrics":grouped,"scored_records":len(rows)}
