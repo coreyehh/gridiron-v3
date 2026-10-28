@@ -74,7 +74,21 @@ def evaluate(raw, *, first_week=4, last_week=8, min_samples=8,
         # normal interval; still descriptive without cluster correction.
         family_z=2.638
         family_half=family_z*math.sqrt(variance/n)
-        return {"paired_n":n,
+        # Aggregate paired errors by NFL week before uncertainty estimation.
+        # This avoids treating same-week player observations as independent.
+        week_groups={}
+        for row in group:
+            if row["baseline_brier"] is not None:
+                week_groups.setdefault(row["week"],[]).append(row["baseline_brier"]-row["brier"])
+        week_means=[sum(v)/len(v) for v in week_groups.values()]
+        week_ci=None
+        if len(week_means)>=3:
+            week_mean=sum(week_means)/len(week_means)
+            week_var=sum((x-week_mean)**2 for x in week_means)/(len(week_means)-1)
+            week_half=family_z*math.sqrt(week_var/len(week_means))
+            week_ci=[round(week_mean-week_half,6),round(week_mean+week_half,6)]
+        return {"paired_n":n,"week_cluster_count":len(week_means),
+            "week_cluster_familywise_ci95":week_ci,
             "paired_improvement_familywise_ci95":[round(mean-family_half,6),
                                                     round(mean+family_half,6)],
             "paired_improvement_ci95":[
