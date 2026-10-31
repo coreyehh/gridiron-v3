@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import pandas as pd
 from matchup_engine.grade_snapshots import grade_prediction_snapshot
+from matchup_engine.paired_accountability import compare_scenario_errors
 from matchup_engine.ingest import SOURCE
 
 def main():
@@ -18,6 +19,10 @@ def main():
     output=Path(args.output)
     output.parent.mkdir(parents=True,exist_ok=True)
     graded.to_csv(output,index=False)
+    if "scenario_home_points" in graded.columns:
+        paired,paired_metrics=compare_scenario_errors(graded)
+        paired.to_csv(output.with_suffix(".paired.csv"),index=False)
+        metrics["personnel_comparison"]=paired_metrics
     output.with_suffix(".metrics.json").write_text(json.dumps(metrics,indent=2))
     print(json.dumps(metrics,indent=2))
 
