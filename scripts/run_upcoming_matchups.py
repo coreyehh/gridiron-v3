@@ -5,6 +5,7 @@ import pandas as pd
 from matchup_engine.upcoming import upcoming_board
 from matchup_engine.quality import validate_prediction_board
 from matchup_engine.personnel import apply_personnel_scenarios
+from matchup_engine.personnel_evidence import audit_personnel_evidence
 
 SOURCE="https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
 
@@ -19,6 +20,7 @@ def main():
     quality=validate_prediction_board(board,schedule,args.as_of)
     if args.personnel_csv:
         adjustments=pd.read_csv(args.personnel_csv)
+        audit_personnel_evidence(adjustments,args.as_of)
         board=apply_personnel_scenarios(board,adjustments,args.as_of)
     print('Quality checks passed:',quality)
     output=Path(args.output)
