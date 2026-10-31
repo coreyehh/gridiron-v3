@@ -6,6 +6,7 @@ from matchup_engine.upcoming import upcoming_board
 from matchup_engine.quality import validate_prediction_board
 from matchup_engine.personnel import apply_personnel_scenarios
 from matchup_engine.personnel_evidence import audit_personnel_evidence
+from matchup_engine.snapshots import save_prediction_snapshot
 
 SOURCE="https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
 
@@ -26,6 +27,8 @@ def main():
     output=Path(args.output)
     output.parent.mkdir(parents=True,exist_ok=True)
     board.to_csv(output,index=False)
+    snapshot_csv,snapshot_metadata=save_prediction_snapshot(board,output.parent/'snapshots',args.as_of)
+    print('Accountability snapshot:',snapshot_csv,snapshot_metadata)
     print(board.to_string(index=False))
 
 if __name__=="__main__":
