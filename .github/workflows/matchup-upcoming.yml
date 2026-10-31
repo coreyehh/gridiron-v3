@@ -1,0 +1,36 @@
+name: GRIDIRON preliminary upcoming matchup board
+on:
+  workflow_dispatch:
+    inputs:
+      as_of:
+        description: Cutoff date YYYY-MM-DD
+        required: true
+        default: '2026-10-31'
+  pull_request:
+    paths:
+      - 'matchup_engine/upcoming.py'
+      - 'scripts/run_upcoming_matchups.py'
+      - 'tests/test_upcoming_matchups.py'
+      - '.github/workflows/matchup-upcoming.yml'
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+      - run: python -m pytest -q tests/test_upcoming_matchups.py
+      - name: Generate preliminary predictions
+        run: python -m scripts.run_upcoming_matchups --as-of "${AS_OF:-2026-10-31}"
+        env:
+          AS_OF: ${{ inputs.as_of }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridiron-preliminary-matchup-board
+          path: artifacts/matchup/upcoming_predictions.csv
