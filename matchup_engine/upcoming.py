@@ -23,6 +23,9 @@ def upcoming_board(schedule, as_of, window=8, min_prior_games=4):
                        regular.away_score.isna()].sort_values(["gameday","game_id"]).copy()
     if future.empty:
         raise ValueError("No unplayed regular-season games on or after as-of date")
+    # Only forecast the next scheduled NFL week, not every future week.
+    next_game=future.iloc[0]
+    future=future.loc[(future.season==next_game.season)&(future.week==next_game.week)].copy()
     training=make_training_frame(past,window=window,min_prior_games=min_prior_games)
     if len(training)<30 or training.home_win.nunique()<2:
         raise ValueError("Insufficient completed games for training")
