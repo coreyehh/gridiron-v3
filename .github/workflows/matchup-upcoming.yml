@@ -12,11 +12,13 @@ on:
       - 'matchup_engine/quality.py'
       - 'matchup_engine/personnel.py'
       - 'matchup_engine/personnel_evidence.py'
+      - 'matchup_engine/snapshots.py'
       - 'scripts/run_upcoming_matchups.py'
       - 'tests/test_upcoming_matchups.py'
       - 'tests/test_matchup_quality.py'
       - 'tests/test_personnel_scenarios.py'
       - 'tests/test_personnel_evidence.py'
+      - 'tests/test_matchup_snapshots.py'
       - '.github/workflows/matchup-upcoming.yml'
 jobs:
   predict:
@@ -30,7 +32,7 @@ jobs:
           python-version: '3.11'
           cache: pip
       - run: pip install -r requirements.txt pytest
-      - run: python -m pytest -q tests/test_upcoming_matchups.py tests/test_matchup_quality.py tests/test_personnel_scenarios.py tests/test_personnel_evidence.py
+      - run: python -m pytest -q tests/test_upcoming_matchups.py tests/test_matchup_quality.py tests/test_personnel_scenarios.py tests/test_personnel_evidence.py tests/test_matchup_snapshots.py
       - name: Generate preliminary predictions
         run: python -m scripts.run_upcoming_matchups --as-of "${AS_OF:-2026-10-31}"
         env:
@@ -39,4 +41,6 @@ jobs:
         if: always()
         with:
           name: gridiron-preliminary-matchup-board
-          path: artifacts/matchup/upcoming_predictions.csv
+          path: |
+            artifacts/matchup/upcoming_predictions.csv
+            artifacts/matchup/snapshots/
