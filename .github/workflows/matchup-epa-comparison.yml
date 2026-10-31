@@ -1,11 +1,17 @@
 name: GRIDIRON opponent-adjusted EPA comparison
 on:
+  pull_request:
+    paths:
+      - 'matchup_engine/**'
+      - 'scripts/compare_matchup_epa.py'
+      - 'tests/test_matchup_compare.py'
+      - '.github/workflows/matchup-epa-comparison.yml'
   workflow_dispatch:
     inputs:
       start_season:
         description: First historical season
         required: true
-        default: '2022'
+        default: '2024'
       through_season:
         description: Final historical season
         required: true
@@ -25,7 +31,10 @@ jobs:
       - run: pip install -r requirements.txt pytest
       - run: python -m pytest -q tests/test_matchup_compare.py tests/test_epa_features.py tests/test_epa_ratings.py
       - name: Run paired historical comparison
-        run: python -m scripts.compare_matchup_epa --start-season ${{ inputs.start_season }} --through-season ${{ inputs.through_season }}
+        run: python -m scripts.compare_matchup_epa --start-season ${START_SEASON:-2024} --through-season ${THROUGH_SEASON:-2025}
+        env:
+          START_SEASON: ${{ inputs.start_season }}
+          THROUGH_SEASON: ${{ inputs.through_season }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
