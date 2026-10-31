@@ -36,3 +36,18 @@ def test_tampered_snapshot_is_rejected(tmp_path):
     csv.write_text(csv.read_text()+"\n")
     with pytest.raises(ValueError,match="integrity"):
         grade_prediction_snapshot(csv,meta,results)
+
+def test_rejects_same_day_snapshot(tmp_path):
+    csv,meta,results=sample(tmp_path)
+    details=json.loads(meta.read_text())
+    details["generated_at_utc"]="2026-11-01T12:00:00+00:00"
+    meta.write_text(json.dumps(details))
+    with pytest.raises(ValueError,match="not provably pregame"):
+        grade_prediction_snapshot(csv,meta,results)
+
+def test_tie_does_not_count_as_wrong_winner(tmp_path):
+    csv,meta,results=sample(tmp_path)
+    results.loc[0,["home_score","away_score"]]=[20.,20.]
+    _,metrics=grade_prediction_snapshot(csv,meta,results)
+    assert metrics["winner_accuracy"] is None or pd.isna(metrics["winner_accuracy"])
+    assert metrics["margin_mae"]==7.
