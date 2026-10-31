@@ -23,8 +23,9 @@ def test_rejects_inconsistent_spread():
 
 def test_rejects_stale_schedule():
     board,schedule=fixture()
+    schedule.loc[0,"gameday"]="2026-10-01"
     with pytest.raises(ValueError,match="stale"):
-        validate_prediction_board(board,schedule,"2026-11-10")
+        validate_prediction_board(board,schedule,"2026-10-31")
 
 def test_rejects_missing_game():
     board,schedule=fixture()
