@@ -18,6 +18,10 @@ def apply_personnel_scenarios(board, adjustments, as_of):
     result["personnel_away_adjustment"]=0.
     result["personnel_status"]="NO_VERIFIED_PERSONNEL_OVERLAY"
     if adjustments.empty:
+        result["scenario_home_points"]=result.projected_home_points
+        result["scenario_away_points"]=result.projected_away_points
+        result["scenario_total"]=result.scenario_home_points+result.scenario_away_points
+        result["scenario_home_spread"]=result.scenario_away_points-result.scenario_home_points
         return result
     updates=adjustments.copy()
     updates["observed_at"]=pd.to_datetime(updates.observed_at,utc=True,errors="raise")
