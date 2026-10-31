@@ -8,6 +8,7 @@ from matchup_engine.features import make_training_frame
 from matchup_engine.epa_data import load_epa_games
 from matchup_engine.epa_features import add_epa_features
 from matchup_engine.compare import compare_models
+from matchup_engine.diagnostics import paired_diagnostics
 
 def main():
     parser=argparse.ArgumentParser()
@@ -25,6 +26,8 @@ def main():
     aggregates=load_epa_games(range(args.start_season,args.through_season+1))
     enriched=add_epa_features(frame,aggregates)
     predictions,metrics=compare_models(enriched)
+    diagnostics=paired_diagnostics(predictions['baseline'],predictions['epa'])
+    diagnostics.to_csv(out/'paired_diagnostics_by_season.csv',index=False)
     for name,p in predictions.items():
         p.to_csv(out/f"{name}_predictions.csv",index=False)
     (out/"metrics.json").write_text(json.dumps(metrics,indent=2)+"\n")
