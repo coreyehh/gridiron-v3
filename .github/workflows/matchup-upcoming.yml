@@ -16,6 +16,8 @@ on:
       - 'matchup_engine/grade_snapshots.py'
       - 'matchup_engine/paired_accountability.py'
       - 'matchup_engine/ledger.py'
+      - 'matchup_engine/dashboard.py'
+      - 'scripts/render_matchup_dashboard.py'
       - 'scripts/grade_matchup_snapshot.py'
       - 'scripts/run_upcoming_matchups.py'
       - 'tests/test_upcoming_matchups.py'
@@ -26,6 +28,7 @@ on:
       - 'tests/test_grade_matchup_snapshot.py'
       - 'tests/test_paired_accountability.py'
       - 'tests/test_grading_ledger.py'
+      - 'tests/test_matchup_dashboard.py'
       - '.github/workflows/matchup-upcoming.yml'
 jobs:
   predict:
@@ -39,11 +42,13 @@ jobs:
           python-version: '3.11'
           cache: pip
       - run: pip install -r requirements.txt pytest
-      - run: python -m pytest -q tests/test_upcoming_matchups.py tests/test_matchup_quality.py tests/test_personnel_scenarios.py tests/test_personnel_evidence.py tests/test_matchup_snapshots.py tests/test_grade_matchup_snapshot.py tests/test_paired_accountability.py tests/test_grading_ledger.py
+      - run: python -m pytest -q tests/test_upcoming_matchups.py tests/test_matchup_quality.py tests/test_personnel_scenarios.py tests/test_personnel_evidence.py tests/test_matchup_snapshots.py tests/test_grade_matchup_snapshot.py tests/test_paired_accountability.py tests/test_grading_ledger.py tests/test_matchup_dashboard.py
       - name: Generate preliminary predictions
         run: python -m scripts.run_upcoming_matchups --as-of "${AS_OF:-2026-10-31}"
         env:
           AS_OF: ${{ inputs.as_of }}
+      - name: Render matchup dashboard
+        run: python -m scripts.render_matchup_dashboard --predictions artifacts/matchup/upcoming_predictions.csv
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -51,3 +56,4 @@ jobs:
           path: |
             artifacts/matchup/upcoming_predictions.csv
             artifacts/matchup/snapshots/
+            artifacts/matchup/dashboard.html
