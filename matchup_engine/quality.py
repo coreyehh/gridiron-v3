@@ -29,5 +29,15 @@ def validate_prediction_board(board, schedule, as_of, max_schedule_age_days=7):
                            schedule.home_score.notna()&schedule.away_score.notna()]
     if completed.empty or (pd.Timestamp(as_of)-completed.gameday.max()).days>max_schedule_age_days:
         raise ValueError("Schedule/results appear stale")
+    # A missing game is a failed forecast, not a silently smaller slate.
+    target=schedule.loc[(schedule.game_type=="REG") &
+                        (schedule.season==board.season.iloc[0]) &
+                        (schedule.week==board.week.iloc[0]) &
+                        (schedule.gameday>=pd.Timestamp(as_of)) &
+                        schedule.home_score.isna() & schedule.away_score.isna()]
+    missing_games=set(target.game_id)-set(board.game_id)
+    unexpected_games=set(board.game_id)-set(target.game_id)
+    if missing_games or unexpected_games:
+        raise ValueError(f"Forecast slate coverage mismatch: missing={sorted(missing_games)}, unexpected={sorted(unexpected_games)}")
     return {"games":len(board),"season":int(board.season.iloc[0]),
             "week":int(board.week.iloc[0]),"latest_completed_game":str(completed.gameday.max().date())}
