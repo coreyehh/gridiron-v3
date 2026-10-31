@@ -1,0 +1,33 @@
+name: GRIDIRON opponent-adjusted EPA comparison
+on:
+  workflow_dispatch:
+    inputs:
+      start_season:
+        description: First historical season
+        required: true
+        default: '2022'
+      through_season:
+        description: Final historical season
+        required: true
+        default: '2025'
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+      - run: python -m pytest -q tests/test_matchup_compare.py tests/test_epa_features.py tests/test_epa_ratings.py
+      - name: Run paired historical comparison
+        run: python -m scripts.compare_matchup_epa --start-season ${{ inputs.start_season }} --through-season ${{ inputs.through_season }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: matchup-epa-comparison
+          path: artifacts/matchup-epa/
