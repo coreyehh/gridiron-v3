@@ -1,6 +1,6 @@
 {
   "status": "awaiting_verified_historical_quotes",
-  "created_at_utc": "2026-11-17T12:27:42.169543+00:00",
+  "created_at_utc": "2026-11-24T21:29:37.328332+00:00",
   "historical_quotes_validated": 0,
   "calibrated_model_predictions_available": false,
   "backtested_roi_available": false,
